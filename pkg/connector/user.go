@@ -34,7 +34,6 @@ func (o *UserResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagin
 	}
 
 	nextPage := convertNextPageToken(resp.Page, len(users))
-
 	rv := make([]*v2.Resource, 0, len(users))
 	for _, user := range users {
 		annos := &v2.V1Identifier{

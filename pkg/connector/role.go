@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/cloudflare/cloudflare-go"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -68,6 +69,7 @@ func (o *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resour
 }
 
 func (o *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
+	var rv []*v2.Grant
 	page, err := convertPageToken(pt.Token)
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("Cloudflare: invalid page token error")
@@ -79,25 +81,29 @@ func (o *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 		return nil, "", nil, err
 	}
 
+	roleId := resource.Id.Resource
 	nextPage := convertNextPageToken(resp.Page, len(users))
-	var rv []*v2.Grant
 	for _, user := range users {
-		for _, role := range user.Roles {
-			if resource.Id.Resource == role.ID {
-				v1Identifier := &v2.V1Identifier{
-					Id: V1GrantID(V1MembershipEntitlementID(resource.Id.Resource), user.ID),
-				}
-				uID, err := sdk.NewResourceID(resourceTypeUser, user.ID)
-				if err != nil {
-					return nil, "", nil, err
-				}
-				grant := sdk.NewGrant(resource, roleMemberEntitlement, uID)
-				annos := annotations.Annotations(grant.Annotations)
-				annos.Update(v1Identifier)
-				grant.Annotations = annos
-				rv = append(rv, grant)
-			}
+		userPos := slices.IndexFunc(user.Roles, func(r cloudflare.AccountRole) bool {
+			return r.ID == roleId
+		})
+		if userPos == -1 {
+			continue
 		}
+
+		roleName := user.Roles[userPos].Name
+		v1Identifier := &v2.V1Identifier{
+			Id: V1GrantID(V1MembershipEntitlementID(roleId), user.ID),
+		}
+		uID, err := sdk.NewResourceID(resourceTypeUser, user.User.ID)
+		if err != nil {
+			return nil, "", nil, err
+		}
+		grant := sdk.NewGrant(resource, roleName, uID)
+		annos := annotations.Annotations(grant.Annotations)
+		annos.Update(v1Identifier)
+		grant.Annotations = annos
+		rv = append(rv, grant)
 	}
 
 	return rv, nextPage, nil, nil

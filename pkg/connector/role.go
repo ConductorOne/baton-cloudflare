@@ -12,7 +12,9 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
-	"github.com/conductorone/baton-sdk/pkg/sdk"
+	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
+	"github.com/conductorone/baton-sdk/pkg/types/grant"
+	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )
@@ -38,44 +40,85 @@ func (o *roleResourceType) ResourceType(_ context.Context) *v2.ResourceType {
 	return o.resourceType
 }
 
+// getRoleResource creates a new connector resource for a Zendesk role.
+func roleResource(role cloudflare.AccountRole, resourceTypeRole *v2.ResourceType, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+	profile := map[string]interface{}{
+		"role_id":   role.ID,
+		"role_name": role.Name,
+	}
+
+	roleTraitOptions := []rs.RoleTraitOption{
+		rs.WithRoleProfile(profile),
+	}
+
+	ret, err := rs.NewRoleResource(
+		role.Name,
+		resourceTypeRole,
+		role.ID,
+		roleTraitOptions,
+		rs.WithParentResourceID(parentResourceID),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
+}
+
 func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	roles, err := o.client.AccountRoles(ctx, o.accountId)
 	if err != nil {
 		return nil, "", nil, err
 	}
 	rv := make([]*v2.Resource, 0, len(roles))
-	for _, r := range roles {
-		annos := &v2.V1Identifier{
-			Id: r.ID,
-		}
-		profile := roleProfile(ctx, r)
-		roleResource, err := sdk.NewRoleResource(r.Name, resourceTypeRole, nil, r.ID, profile, annos)
+	for _, role := range roles {
+		roleResource, err := roleResource(role, resourceTypeRole, nil)
 		if err != nil {
 			return nil, "", nil, err
 		}
 		rv = append(rv, roleResource)
 	}
-	annos := &v2.V1Identifier{
-		Id: SuperAdminRoleId,
-	}
-	adminRoleResource, err := sdk.NewRoleResource("Super Administrator - All Privileges", resourceTypeRole, nil, SuperAdminRoleId, nil, annos)
+
+	// adminRoleResource, err := sdk.NewRoleResource("Super Administrator - All Privileges", resourceTypeRole, nil, SuperAdminRoleId, nil, annos)
+	adminRoleResource, err := roleResource(cloudflare.AccountRole{
+		ID:   SuperAdminRoleId,
+		Name: "Super Administrator - All Privileges",
+	}, resourceTypeRole, nil)
 	if err != nil {
 		return nil, "", nil, err
 	}
 	rv = append(rv, adminRoleResource)
+
 	return rv, "", nil, nil
 }
 
-func (o *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	var annos annotations.Annotations
-	annos.Update(&v2.V1Identifier{
-		Id: V1MembershipEntitlementID(resource.Id.Resource),
-	})
-	member := sdk.NewAssignmentEntitlement(resource, roleMemberEntitlement, resourceTypeUser)
-	member.Description = fmt.Sprintf("Has the %s role in Cloudflare", resource.DisplayName)
-	member.Annotations = annos
-	member.DisplayName = fmt.Sprintf("%s Role Member", resource.DisplayName)
-	return []*v2.Entitlement{member}, "", nil, nil
+func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resource, token *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
+	var (
+		rv      []*v2.Entitlement
+		options []ent.EntitlementOption
+	)
+	roles, err := r.client.AccountRoles(ctx, r.accountId)
+	if err != nil {
+		return nil, "", nil, wrapError(err, "failed to list roles")
+	}
+
+	for _, role := range roles {
+		options = []ent.EntitlementOption{
+			ent.WithGrantableTo(resourceTypeRole),
+			ent.WithDisplayName(fmt.Sprintf("%s Role %s", resource.DisplayName, role.Name)),
+			ent.WithDescription(fmt.Sprintf("%s of %s Cloudflare role", role.Name, resource.DisplayName)),
+		}
+		rv = append(rv, ent.NewAssignmentEntitlement(resource, role.Name, options...))
+	}
+
+	options = []ent.EntitlementOption{
+		ent.WithGrantableTo(resourceTypeRole),
+		ent.WithDisplayName(fmt.Sprintf("%s Role %s", resource.DisplayName, roleMemberEntitlement)),
+		ent.WithDescription(fmt.Sprintf("%s of %s Cloudflare role", roleMemberEntitlement, resource.DisplayName)),
+	}
+	rv = append(rv, ent.NewAssignmentEntitlement(resource, roleMemberEntitlement, options...))
+
+	return rv, "", nil, nil
 }
 
 // GetAccountMember returns an account member.
@@ -132,18 +175,28 @@ func (o *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 		}
 
 		roleName := user.Roles[userPos].Name
+		accUser := cloudflare.AccountMember{
+			ID: user.ID,
+			User: cloudflare.AccountMemberUserDetails{
+				ID:        user.User.ID,
+				FirstName: user.User.FirstName,
+				LastName:  user.User.LastName,
+				Email:     user.User.Email,
+			},
+		}
+		ur, err := userResource(accUser)
+		if err != nil {
+			return nil, "", nil, wrapError(err, "failed to create user resource")
+		}
+
+		gr := grant.NewGrant(resource, roleName, ur.Id)
+		annos := annotations.Annotations(gr.Annotations)
 		v1Identifier := &v2.V1Identifier{
 			Id: V1GrantID(V1MembershipEntitlementID(roleId), user.ID),
 		}
-		uID, err := sdk.NewResourceID(resourceTypeUser, user.User.ID)
-		if err != nil {
-			return nil, "", nil, err
-		}
-		grant := sdk.NewGrant(resource, roleName, uID)
-		annos := annotations.Annotations(grant.Annotations)
 		annos.Update(v1Identifier)
-		grant.Annotations = annos
-		rv = append(rv, grant)
+		gr.Annotations = annos
+		rv = append(rv, gr)
 	}
 
 	return rv, nextPage, nil, nil
@@ -271,12 +324,4 @@ func roleBuilder(api *cloudflare.API, accountId string) *roleResourceType {
 		client:       api,
 		accountId:    accountId,
 	}
-}
-
-func roleProfile(ctx context.Context, role cloudflare.AccountRole) map[string]interface{} {
-	profile := make(map[string]interface{})
-	profile["role_id"] = role.ID
-	profile["role_name"] = role.Name
-	profile["role_description"] = role.Description
-	return profile
 }

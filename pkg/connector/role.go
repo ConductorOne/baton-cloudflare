@@ -31,10 +31,9 @@ var ErrMissingAccountID = errors.New(errMissingAccountID)
 
 type roleResourceType struct {
 	resourceType *v2.ResourceType
-	// api          *cloudflare.API
-	client     *cloudflare.API
-	httpClient *uhttp.BaseHttpClient
-	accountId  string
+	client       *cloudflare.API
+	httpClient   *uhttp.BaseHttpClient
+	accountId    string
 }
 
 func (o *roleResourceType) ResourceType(_ context.Context) *v2.ResourceType {

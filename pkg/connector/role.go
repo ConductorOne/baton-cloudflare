@@ -338,16 +338,9 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 }
 
 func roleBuilder(api *cloudflare.API, accountId string) *roleResourceType {
-	// httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
-	// if err != nil {
-	// 	return nil
-	// }
-
-	// cli := uhttp.NewBaseHttpClient(httpClient)
 	return &roleResourceType{
 		resourceType: resourceTypeRole,
 		client:       api,
 		accountId:    accountId,
-		// httpClient:   cli,
 	}
 }

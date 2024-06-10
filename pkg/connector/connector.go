@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/cloudflare/cloudflare-go"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -44,20 +43,23 @@ type Cloudflare struct {
 }
 
 func New(ctx context.Context, config Config) (*Cloudflare, error) {
-	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, nil))
-	if err != nil {
-		return nil, err
-	}
-	api, err := cloudflare.NewWithAPIToken(config.ApiKey, cloudflare.HTTPClient(httpClient))
-	if err != nil {
-		log.Fatal(err)
+	var api *cloudflare.API
+	if config.AccountId != "" && config.ApiKey != "" {
+		httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, nil))
+		if err != nil {
+			return nil, err
+		}
+
+		api, err = cloudflare.NewWithAPIToken(config.ApiKey, cloudflare.HTTPClient(httpClient))
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	rv := &Cloudflare{
+	return &Cloudflare{
 		api:       api,
 		accountId: config.AccountId,
-	}
-	return rv, nil
+	}, nil
 }
 
 func (c *Cloudflare) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
@@ -78,10 +80,13 @@ func (c *Cloudflare) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error
 }
 
 func (c *Cloudflare) Validate(ctx context.Context) (annotations.Annotations, error) {
-	_, _, err := c.api.Account(ctx, c.accountId)
-	if err != nil {
-		return nil, fmt.Errorf("Cloudflare: failed to validate API keys: %w", err)
+	if c.accountId != "" {
+		_, _, err := c.api.Account(ctx, c.accountId)
+		if err != nil {
+			return nil, fmt.Errorf("Cloudflare: failed to validate API keys: %w", err)
+		}
 	}
+
 	return nil, nil
 }
 

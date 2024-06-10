@@ -2,10 +2,10 @@ package connector
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 
 	"github.com/cloudflare/cloudflare-go"
@@ -15,6 +15,7 @@ import (
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
+	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )
@@ -32,7 +33,7 @@ type roleResourceType struct {
 	resourceType *v2.ResourceType
 	// api          *cloudflare.API
 	client     *cloudflare.API
-	httpClient *http.Client
+	httpClient *uhttp.BaseHttpClient
 	accountId  string
 }
 
@@ -121,33 +122,51 @@ func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resour
 	return rv, "", nil, nil
 }
 
+func WithAuthEmailHeader(apiEmail string) uhttp.RequestOption {
+	return uhttp.WithHeader("X-Auth-Email", apiEmail)
+}
+
+func WithAuthKeyHeader(apiKey string) uhttp.RequestOption {
+	return uhttp.WithHeader("X-Auth-Key", apiKey)
+}
+
 // GetAccountMember returns an account member.
 func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID string, memberID string) (*cloudflare.AccountMemberDetailResponse, error) {
 	var accountMemberListResponse = &cloudflare.AccountMemberDetailResponse{}
 	if accountID == "" {
 		return &cloudflare.AccountMemberDetailResponse{}, ErrMissingAccountID
 	}
-	r.httpClient = &http.Client{}
-	requestURL := fmt.Sprintf("%s/accounts/%s/members/%s", r.client.BaseURL, accountID, memberID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+
+	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
 	if err != nil {
-		return &cloudflare.AccountMemberDetailResponse{}, err
+		return nil, err
 	}
 
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("X-Auth-Email", r.client.APIEmail)
-	req.Header.Add("X-Auth-Key", r.client.APIKey)
-	resp, err := r.httpClient.Do(req)
+	cli := uhttp.NewBaseHttpClient(httpClient)
+	r.httpClient = cli
+	endpointUrl := fmt.Sprintf("%s/accounts/%s/members/%s", r.client.BaseURL, accountID, memberID)
+	uri, err := url.Parse(endpointUrl)
 	if err != nil {
-		return &cloudflare.AccountMemberDetailResponse{}, err
+		return nil, err
+	}
+
+	req, err := r.httpClient.NewRequest(ctx,
+		http.MethodGet,
+		uri,
+		uhttp.WithAcceptJSONHeader(),
+		WithAuthEmailHeader(r.client.APIEmail),
+		WithAuthKeyHeader(r.client.APIKey),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := r.httpClient.Do(req, uhttp.WithJSONResponse(&accountMemberListResponse))
+	if err != nil {
+		return nil, err
 	}
 
 	defer resp.Body.Close()
-	err = json.NewDecoder(resp.Body).Decode(accountMemberListResponse)
-	if err != nil {
-		return &cloudflare.AccountMemberDetailResponse{}, err
-	}
-
 	return accountMemberListResponse, err
 }
 
@@ -319,9 +338,16 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 }
 
 func roleBuilder(api *cloudflare.API, accountId string) *roleResourceType {
+	// httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
+	// if err != nil {
+	// 	return nil
+	// }
+
+	// cli := uhttp.NewBaseHttpClient(httpClient)
 	return &roleResourceType{
 		resourceType: resourceTypeRole,
 		client:       api,
 		accountId:    accountId,
+		// httpClient:   cli,
 	}
 }

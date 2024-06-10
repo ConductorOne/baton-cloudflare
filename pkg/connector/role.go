@@ -132,17 +132,16 @@ func WithAuthKeyHeader(apiKey string) uhttp.RequestOption {
 // GetAccountMember returns an account member.
 func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID string, memberID string) (*cloudflare.AccountMemberDetailResponse, error) {
 	var accountMemberListResponse = &cloudflare.AccountMemberDetailResponse{}
-	if accountID == "" {
-		return &cloudflare.AccountMemberDetailResponse{}, ErrMissingAccountID
-	}
-
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
 	if err != nil {
 		return nil, err
 	}
 
-	cli := uhttp.NewBaseHttpClient(httpClient)
-	r.httpClient = cli
+	if accountID == "" {
+		return &cloudflare.AccountMemberDetailResponse{}, ErrMissingAccountID
+	}
+
+	r.httpClient = uhttp.NewBaseHttpClient(httpClient)
 	endpointUrl := fmt.Sprintf("%s/accounts/%s/members/%s", r.client.BaseURL, accountID, memberID)
 	uri, err := url.Parse(endpointUrl)
 	if err != nil {
@@ -169,7 +168,7 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 	return accountMemberListResponse, err
 }
 
-func (o *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
+func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	var rv []*v2.Grant
 	page, err := convertPageToken(pt.Token)
 	if err != nil {
@@ -177,7 +176,7 @@ func (o *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 	}
 
 	pageOpts := cloudflare.PaginationOptions{Page: page}
-	users, resp, err := o.client.AccountMembers(ctx, o.accountId, pageOpts)
+	users, resp, err := r.client.AccountMembers(ctx, r.accountId, pageOpts)
 	if err != nil {
 		return nil, "", nil, err
 	}

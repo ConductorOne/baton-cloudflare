@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 env:
   SOURCE_BRANCH: main
-  SOURCE_REPOSITORY: dotdc/template-terraform-module
+  SOURCE_REPOSITORY: ConductorOne/baton-template
 jobs:
   repo-sync:
     runs-on: ubuntu-latest

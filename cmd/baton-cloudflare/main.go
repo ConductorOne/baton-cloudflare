@@ -17,7 +17,6 @@ var version = "dev"
 
 func main() {
 	ctx := context.Background()
-
 	cfg := &config{}
 	cmd, err := cli.NewCmd(ctx, "baton-cloudflare", cfg, validateConfig, getConnector)
 	if err != nil {
@@ -27,7 +26,6 @@ func main() {
 
 	cmd.Version = version
 	cmdFlags(cmd)
-
 	err = cmd.Execute()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
@@ -40,6 +38,7 @@ func getConnector(ctx context.Context, cfg *config) (types.ConnectorServer, erro
 	config := connector.Config{
 		AccountId: cfg.AccountId,
 		ApiKey:    cfg.ApiKey,
+		EmailId:   cfg.EmailId,
 	}
 
 	cb, err := connector.New(ctx, config)

@@ -31,9 +31,11 @@ var ErrMissingAccountID = errors.New(errMissingAccountID)
 
 type roleResourceType struct {
 	resourceType *v2.ResourceType
+	api          *cloudflare.API
 	client       *cloudflare.API
 	httpClient   *uhttp.BaseHttpClient
 	accountId    string
+	emailId      string
 }
 
 func (o *roleResourceType) ResourceType(_ context.Context) *v2.ResourceType {
@@ -66,7 +68,7 @@ func roleResource(role cloudflare.AccountRole, resourceTypeRole *v2.ResourceType
 }
 
 func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	roles, err := o.client.AccountRoles(ctx, o.accountId)
+	roles, err := o.api.AccountRoles(ctx, o.accountId)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -97,7 +99,7 @@ func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resour
 		rv      []*v2.Entitlement
 		options []ent.EntitlementOption
 	)
-	roles, err := r.client.AccountRoles(ctx, r.accountId)
+	roles, err := r.api.AccountRoles(ctx, r.accountId)
 	if err != nil {
 		return nil, "", nil, wrapError(err, "failed to list roles")
 	}
@@ -121,12 +123,8 @@ func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resour
 	return rv, "", nil, nil
 }
 
-func WithAuthEmailHeader(apiEmail string) uhttp.RequestOption {
-	return uhttp.WithHeader("X-Auth-Email", apiEmail)
-}
-
-func WithAuthKeyHeader(apiKey string) uhttp.RequestOption {
-	return uhttp.WithHeader("X-Auth-Key", apiKey)
+func WithAuthorizationBearerHeader(token string) uhttp.RequestOption {
+	return uhttp.WithHeader("Authorization", "Bearer "+token)
 }
 
 // GetAccountMember returns an account member.
@@ -152,8 +150,7 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 		http.MethodGet,
 		uri,
 		uhttp.WithAcceptJSONHeader(),
-		WithAuthEmailHeader(r.client.APIEmail),
-		WithAuthKeyHeader(r.client.APIKey),
+		WithAuthorizationBearerHeader(r.api.APIToken),
 	)
 	if err != nil {
 		return nil, err
@@ -161,7 +158,7 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 
 	resp, err := r.httpClient.Do(req, uhttp.WithJSONResponse(&accountMemberListResponse))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s %s", err.Error(), resp.Body)
 	}
 
 	defer resp.Body.Close()
@@ -176,7 +173,7 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 	}
 
 	pageOpts := cloudflare.PaginationOptions{Page: page}
-	users, resp, err := r.client.AccountMembers(ctx, r.accountId, pageOpts)
+	users, resp, err := r.api.AccountMembers(ctx, r.accountId, pageOpts)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -225,7 +222,6 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 		userId = principal.Id.Resource
 	)
 	l := ctxzap.Extract(ctx)
-
 	if principal.Id.ResourceType != resourceTypeUser.Id {
 		l.Warn(
 			"baton-cloudflare: only users can be granted role membership",
@@ -242,7 +238,7 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 
 	account, err := r.GetAccountMember(ctx, r.accountId, memberId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %s", err.Error())
 	}
 
 	roles := []cloudflare.AccountRole{{
@@ -254,7 +250,7 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 		})
 	}
 
-	member, err := r.client.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
+	member, err := r.api.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
 		Roles: roles,
 	})
 	if err != nil {
@@ -270,7 +266,7 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 }
 
 func getMemberId(ctx context.Context, r *roleResourceType, userId string) (string, error) {
-	memberUsers, _, err := r.client.AccountMembers(ctx, r.accountId, cloudflare.PaginationOptions{})
+	memberUsers, _, err := r.api.AccountMembers(ctx, r.accountId, cloudflare.PaginationOptions{})
 	if err != nil {
 		return "", wrapError(err, "failed to list user members")
 	}
@@ -288,7 +284,6 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 	l := ctxzap.Extract(ctx)
 	entitlement := grant.Entitlement
 	principal := grant.Principal
-
 	if principal.Id.ResourceType != resourceTypeUser.Id {
 		l.Warn(
 			"couldflare-connector: only users can have role membership revoked",
@@ -300,7 +295,6 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 
 	userId := principal.Id.Resource
 	roleId := entitlement.Resource.Id.Resource
-
 	memberId, err := getMemberId(ctx, r, userId)
 	if err != nil {
 		return nil, err
@@ -335,10 +329,12 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 	return nil, nil
 }
 
-func roleBuilder(api *cloudflare.API, accountId string) *roleResourceType {
+func roleBuilder(api, client *cloudflare.API, accountId, emailId string) *roleResourceType {
 	return &roleResourceType{
 		resourceType: resourceTypeRole,
-		client:       api,
+		api:          api,
+		client:       client,
 		accountId:    accountId,
+		emailId:      emailId,
 	}
 }

@@ -35,16 +35,19 @@ var (
 type Config struct {
 	AccountId string
 	ApiKey    string
+	EmailId   string
 }
 
 type Cloudflare struct {
 	api       *cloudflare.API
+	client    *cloudflare.API
 	accountId string
+	emailId   string
 }
 
 func New(ctx context.Context, config Config) (*Cloudflare, error) {
-	var api *cloudflare.API
-	if config.AccountId != "" && config.ApiKey != "" {
+	var api, apiClient *cloudflare.API
+	if config.AccountId != "" && config.ApiKey != "" && config.EmailId != "" {
 		httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, nil))
 		if err != nil {
 			return nil, err
@@ -54,11 +57,18 @@ func New(ctx context.Context, config Config) (*Cloudflare, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		apiClient, err = cloudflare.New(config.ApiKey, config.EmailId, cloudflare.HTTPClient(httpClient))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Cloudflare{
 		api:       api,
+		client:    apiClient,
 		accountId: config.AccountId,
+		emailId:   config.EmailId,
 	}, nil
 }
 
@@ -96,6 +106,6 @@ func (c *Cloudflare) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.
 
 func (c *Cloudflare) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
 	rs := []connectorbuilder.ResourceSyncer{}
-	rs = append(rs, userBuilder(c.api, c.accountId), roleBuilder(c.api, c.accountId))
+	rs = append(rs, userBuilder(c.api, c.accountId), roleBuilder(c.api, c.client, c.accountId, c.emailId))
 	return rs
 }

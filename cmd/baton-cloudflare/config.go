@@ -14,6 +14,7 @@ type config struct {
 
 	ApiKey    string `mapstructure:"api-key"`
 	AccountId string `mapstructure:"account-id"`
+	EmailId   string `mapstructure:"email-id"`
 }
 
 // validateConfig is run after the configuration is loaded, and should return an error if it isn't valid.
@@ -24,6 +25,9 @@ func validateConfig(ctx context.Context, cfg *config) error {
 	if cfg.AccountId == "" {
 		return fmt.Errorf("account id is missing")
 	}
+	if cfg.EmailId == "" {
+		return fmt.Errorf("email id is missing")
+	}
 	return nil
 }
 
@@ -31,4 +35,5 @@ func validateConfig(ctx context.Context, cfg *config) error {
 func cmdFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("api-key", "", "The api key for the Cloudflare account. ($BATON_API_KEY)")
 	cmd.PersistentFlags().String("account-id", "", "The account id for the Cloudflare account. ($BATON_ACCOUNT_ID)")
+	cmd.PersistentFlags().String("email-id", "", "The email id for the Cloudflare account. ($BATON_EMAIL_ID)")
 }

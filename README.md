@@ -38,6 +38,7 @@ baton resources
 `baton-cloudflare` will pull down information about the following cloudflare resources:
 - Users
   - Users supervisors
+  - roles
 
 # Contributing, Support and Issues
 

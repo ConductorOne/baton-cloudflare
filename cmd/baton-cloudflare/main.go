@@ -37,8 +37,9 @@ func getConnector(ctx context.Context, cfg *config) (types.ConnectorServer, erro
 	l := ctxzap.Extract(ctx)
 	config := connector.Config{
 		AccountId: cfg.AccountId,
-		ApiKey:    cfg.ApiKey,
+		ApiToken:  cfg.ApiToken,
 		EmailId:   cfg.EmailId,
+		ApiKey:    cfg.ApiKey,
 	}
 
 	cb, err := connector.New(ctx, config)

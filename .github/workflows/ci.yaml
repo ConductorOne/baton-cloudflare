@@ -30,6 +30,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: go tests
+        env:
+          BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
+          BATON_API_TOKEN: ${{ secrets.BATON_API_TOKEN }}
         run: go test -v -covermode=count -json ./... > test.json
       - name: annotate go tests
         if: always()

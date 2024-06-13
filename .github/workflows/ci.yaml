@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
         BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
-        BATON_EMAIL: ${{ secrets.BATON_EMAIL }}
+        BATON_EMAIL_ID: ${{ secrets.BATON_EMAIL }}
         BATON_ACCOUNT_ID: ${{ secrets.BATON_ACCOUNT_ID }}
         BATON_LOG_LEVEL: 'debug'
         # Revoke grants variable
@@ -62,7 +62,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Build baton-cloudflare
         run: go build ./cmd/baton-cloudflare
-      - name: Run baton-cloudflare-zer
+      - name: Run baton-cloudflare
         run: ./baton-cloudflare
       - name: Install baton
         run: ./scripts/get-baton.sh && mv baton /usr/local/bin

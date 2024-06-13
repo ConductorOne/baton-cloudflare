@@ -30,9 +30,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: go tests
-        env:
-          BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
-          BATON_API_TOKEN: ${{ secrets.BATON_API_TOKEN }}
         run: go test -v -covermode=count -json ./... > test.json
       - name: annotate go tests
         if: always()
@@ -71,7 +68,7 @@ jobs:
       - name: Check for grant before revoking
         run: |
          ./baton-cloudflare
-          baton grants --entitlement ${{ env.CONNECTOR_ENTITLEMENT }} --output-format=json | jq -e ".grants | any(.principal.id.resource ==\"${{ env.CONNECTOR_PRINCIPAL }}\")"
+          baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
       - name: Revoke grants
         run: |
           ./baton-cloudflare

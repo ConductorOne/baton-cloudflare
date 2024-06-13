@@ -32,12 +32,11 @@ const NF = -1
 var ErrMissingAccountID = errors.New(errMissingAccountID)
 
 type roleResourceType struct {
-	resourceType    *v2.ResourceType
-	apiWithAPIToken *cloudflare.API
-	apiWithAPIKey   *cloudflare.API
-	httpClient      *uhttp.BaseHttpClient
-	accountId       string
-	emailId         string
+	resourceType *v2.ResourceType
+	client       *cloudflare.API
+	httpClient   *uhttp.BaseHttpClient
+	accountId    string
+	emailId      string
 }
 
 func (o *roleResourceType) ResourceType(_ context.Context) *v2.ResourceType {
@@ -70,7 +69,7 @@ func roleResource(role cloudflare.AccountRole, resourceTypeRole *v2.ResourceType
 }
 
 func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	roles, err := o.apiWithAPIToken.AccountRoles(ctx, o.accountId)
+	roles, err := o.client.AccountRoles(ctx, o.accountId)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -101,7 +100,7 @@ func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resour
 		rv      []*v2.Entitlement
 		options []ent.EntitlementOption
 	)
-	roles, err := r.apiWithAPIToken.AccountRoles(ctx, r.accountId)
+	roles, err := r.client.AccountRoles(ctx, r.accountId)
 	if err != nil {
 		return nil, "", nil, wrapError(err, "failed to list roles")
 	}
@@ -142,7 +141,7 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 	}
 
 	r.httpClient = uhttp.NewBaseHttpClient(httpClient)
-	endpointUrl := fmt.Sprintf("%s/accounts/%s/members/%s", r.apiWithAPIToken.BaseURL, accountID, memberID)
+	endpointUrl := fmt.Sprintf("%s/accounts/%s/members/%s", r.client.BaseURL, accountID, memberID)
 	uri, err := url.Parse(endpointUrl)
 	if err != nil {
 		return nil, err
@@ -152,7 +151,7 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 		http.MethodGet,
 		uri,
 		uhttp.WithAcceptJSONHeader(),
-		WithAuthorizationBearerHeader(r.apiWithAPIToken.APIToken),
+		WithAuthorizationBearerHeader(r.client.APIToken),
 	)
 	if err != nil {
 		return nil, err
@@ -175,7 +174,7 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 	}
 
 	pageOpts := cloudflare.PaginationOptions{Page: page}
-	users, resp, err := r.apiWithAPIToken.AccountMembers(ctx, r.accountId, pageOpts)
+	users, resp, err := r.client.AccountMembers(ctx, r.accountId, pageOpts)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -261,10 +260,13 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 		})
 	}
 
-	member, err := r.apiWithAPIKey.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
+	// member, err := r.client.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
+	// 	Roles: roles,
+	// })
+	member, err := r.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
 		Roles: roles,
 	})
-
+	err = getError(err)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +309,7 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 	}
 
 	r.httpClient = uhttp.NewBaseHttpClient(httpClient)
-	endpointUrl := fmt.Sprintf("%s/accounts/%s/members/%s", r.apiWithAPIToken.BaseURL, accountID, memberID)
+	endpointUrl := fmt.Sprintf("%s/accounts/%s/members/%s", r.client.BaseURL, accountID, memberID)
 	uri, err := url.Parse(endpointUrl)
 	if err != nil {
 		return nil, err
@@ -319,7 +321,7 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 		uhttp.WithJSONBody(body),
 		uhttp.WithAcceptJSONHeader(),
 		uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId),
-		uhttp.WithHeader(XAuthKeyHeaderKey, r.apiWithAPIKey.APIKey),
+		uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey),
 	)
 	if err != nil {
 		return nil, err
@@ -327,7 +329,13 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 
 	resp, err := r.httpClient.Do(req, uhttp.WithJSONResponse(&accountMemberListResponse))
 	if err != nil {
-		return nil, fmt.Errorf("%s %s", err.Error(), resp.Body)
+		return nil, &CloudflareError{
+			ErrorMessage:     err.Error(),
+			ErrorDescription: err.Error(),
+			ErrorCode:        resp.StatusCode,
+			ErrorSummary:     fmt.Sprint(resp.Body),
+			ErrorLink:        endpointUrl,
+		}
 	}
 
 	defer resp.Body.Close()
@@ -335,7 +343,7 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 }
 
 func getMemberId(ctx context.Context, r *roleResourceType, userId string) (string, error) {
-	memberUsers, _, err := r.apiWithAPIToken.AccountMembers(ctx, r.accountId, cloudflare.PaginationOptions{})
+	memberUsers, _, err := r.client.AccountMembers(ctx, r.accountId, cloudflare.PaginationOptions{})
 	if err != nil {
 		return "", wrapError(err, "failed to list user members")
 	}
@@ -395,9 +403,10 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 		return nil, fmt.Errorf("cloudflare-connector: user %s does not have this role", principal.DisplayName)
 	}
 
-	member, err := r.apiWithAPIKey.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
+	member, err := r.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
 		Roles: roles,
 	})
+	err = getError(err)
 	if err != nil {
 		return nil, err
 	}
@@ -410,12 +419,11 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 	return nil, nil
 }
 
-func roleBuilder(apiWithAPIToken, apiWithAPIKey *cloudflare.API, accountId, emailId string) *roleResourceType {
+func roleBuilder(client *cloudflare.API, accountId, emailId string) *roleResourceType {
 	return &roleResourceType{
-		resourceType:    resourceTypeRole,
-		apiWithAPIToken: apiWithAPIToken,
-		apiWithAPIKey:   apiWithAPIKey,
-		accountId:       accountId,
-		emailId:         emailId,
+		resourceType: resourceTypeRole,
+		client:       client,
+		accountId:    accountId,
+		emailId:      emailId,
 	}
 }

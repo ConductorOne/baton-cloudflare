@@ -14,31 +14,34 @@ import (
 )
 
 func New(ctx context.Context, config Config) (*Cloudflare, error) {
-	var apiWithAPIToken, apiWithAPIKey *cloudflare.API
+	var (
+		client *cloudflare.API
+		err    error
+	)
+
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, nil))
 	if err != nil {
 		return nil, err
 	}
 
 	if config.ApiToken != "" {
-		apiWithAPIToken, err = cloudflare.NewWithAPIToken(config.ApiToken, cloudflare.HTTPClient(httpClient))
+		client, err = cloudflare.NewWithAPIToken(config.ApiToken, cloudflare.HTTPClient(httpClient))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if config.ApiKey != "" {
-		apiWithAPIKey, err = cloudflare.New(config.ApiKey, config.EmailId, cloudflare.HTTPClient(httpClient))
+	if config.ApiKey != "" && config.EmailId != "" {
+		client, err = cloudflare.New(config.ApiKey, config.EmailId, cloudflare.HTTPClient(httpClient))
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return &Cloudflare{
-		apiWithAPIToken: apiWithAPIToken,
-		apiWithAPIKey:   apiWithAPIKey,
-		accountId:       config.AccountId,
-		emailId:         config.EmailId,
+		client:    client,
+		accountId: config.AccountId,
+		emailId:   config.EmailId,
 	}, nil
 }
 
@@ -61,7 +64,7 @@ func (c *Cloudflare) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error
 
 func (c *Cloudflare) Validate(ctx context.Context) (annotations.Annotations, error) {
 	if c.accountId != "" {
-		_, _, err := c.apiWithAPIToken.Account(ctx, c.accountId)
+		_, _, err := c.client.Account(ctx, c.accountId)
 		if err != nil {
 			return nil, fmt.Errorf("Cloudflare: failed to validate API keys: %w", err)
 		}
@@ -76,6 +79,7 @@ func (c *Cloudflare) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.
 
 func (c *Cloudflare) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
 	rs := []connectorbuilder.ResourceSyncer{}
-	rs = append(rs, userBuilder(c.apiWithAPIToken, c.accountId), roleBuilder(c.apiWithAPIToken, c.apiWithAPIKey, c.accountId, c.emailId))
+	rs = append(rs, userBuilder(c.client, c.accountId))
+	rs = append(rs, roleBuilder(c.client, c.accountId, c.emailId))
 	return rs
 }

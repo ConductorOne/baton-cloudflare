@@ -10,10 +10,9 @@ type Config struct {
 }
 
 type Cloudflare struct {
-	apiWithAPIToken *cloudflare.API
-	apiWithAPIKey   *cloudflare.API
-	accountId       string
-	emailId         string
+	client    *cloudflare.API
+	accountId string
+	emailId   string
 }
 
 type Response struct {

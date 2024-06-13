@@ -13,7 +13,7 @@ import (
 
 type UserResourceType struct {
 	resourceType *v2.ResourceType
-	api          *cloudflare.API
+	client       *cloudflare.API
 	accountId    string
 }
 
@@ -59,7 +59,7 @@ func (o *UserResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagin
 	}
 
 	pageOpts := cloudflare.PaginationOptions{Page: page}
-	users, resp, err := o.api.AccountMembers(ctx, o.accountId, pageOpts)
+	users, resp, err := o.client.AccountMembers(ctx, o.accountId, pageOpts)
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("cloudflare: could not retrieve users: %w", err)
 	}
@@ -85,10 +85,10 @@ func (o *UserResourceType) Grants(_ context.Context, _ *v2.Resource, _ *paginati
 	return nil, "", nil, nil
 }
 
-func userBuilder(api *cloudflare.API, accountId string) *UserResourceType {
+func userBuilder(client *cloudflare.API, accountId string) *UserResourceType {
 	return &UserResourceType{
 		resourceType: resourceTypeUser,
-		api:          api,
+		client:       client,
 		accountId:    accountId,
 	}
 }

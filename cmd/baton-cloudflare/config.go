@@ -24,10 +24,8 @@ func validateConfig(ctx context.Context, cfg *config) error {
 		return fmt.Errorf("account id is missing")
 	}
 
-	if cfg.ApiToken == "" {
-		if cfg.ApiKey == "" {
-			return fmt.Errorf("either api token or api key must be provided")
-		}
+	if cfg.ApiToken == "" && cfg.ApiKey == "" {
+		return fmt.Errorf("either api token or api key must be provided")
 	}
 
 	if cfg.ApiKey != "" && cfg.EmailId == "" {
@@ -40,7 +38,7 @@ func validateConfig(ctx context.Context, cfg *config) error {
 // cmdFlags sets the cmdFlags required for the connector.
 func cmdFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("api-key", "", "The api key for the Cloudflare account. ($BATON_API_KEY)")
-	cmd.PersistentFlags().String("api-token", "", "The api torkn for the Cloudflare account. ($BATON_API_TOKEN)")
+	cmd.PersistentFlags().String("api-token", "", "The api token for the Cloudflare account. ($BATON_API_TOKEN)")
 	cmd.PersistentFlags().String("account-id", "", "The account id for the Cloudflare account. ($BATON_ACCOUNT_ID)")
 	cmd.PersistentFlags().String("email-id", "", "The email id for the Cloudflare account. ($BATON_EMAIL_ID)")
 }

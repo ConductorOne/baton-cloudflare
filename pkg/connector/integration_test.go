@@ -37,7 +37,7 @@ func TestUpdateAccountMember(t *testing.T) {
 			"6ddc5f80969d01105b5a0931e0079365",
 		}
 	)
-	if apiKey == "" || apiToken == "" {
+	if apiKey == "" && apiToken == "" {
 		t.Skip()
 	}
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
@@ -75,7 +75,7 @@ func TestResourceTypeGrantFails(t *testing.T) {
 		roleId              = "35956457e745b2af7331713a1ddf4fdb"
 		client              *cloudflare.API
 	)
-	if apiKey == "" || apiToken == "" {
+	if apiKey == "" && apiToken == "" {
 		t.Skip()
 	}
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
@@ -117,7 +117,7 @@ func TestResourceTypeGrant(t *testing.T) {
 		roleId              = "298ce8e7a2ba08b9d18ce0a32bb458ee"
 		client              *cloudflare.API
 	)
-	if apiKey == "" || apiToken == "" {
+	if apiKey == "" && apiToken == "" {
 		t.Skip()
 	}
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
@@ -159,7 +159,7 @@ func TestResourceTypeRevoke(t *testing.T) {
 		roleName            = "Firewall"
 		client              *cloudflare.API
 	)
-	if apiKey == "" || apiToken == "" {
+	if apiKey == "" && apiToken == "" {
 		t.Skip()
 	}
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))

@@ -15,17 +15,19 @@ import (
 
 func New(ctx context.Context, config Config) (*Cloudflare, error) {
 	var apiWithAPIToken, apiWithAPIKey *cloudflare.API
-	if config.AccountId != "" && config.ApiToken != "" && config.ApiKey != "" && config.EmailId != "" {
-		httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, nil))
-		if err != nil {
-			return nil, err
-		}
+	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, nil))
+	if err != nil {
+		return nil, err
+	}
 
+	if config.ApiToken != "" {
 		apiWithAPIToken, err = cloudflare.NewWithAPIToken(config.ApiToken, cloudflare.HTTPClient(httpClient))
 		if err != nil {
 			return nil, err
 		}
+	}
 
+	if config.ApiKey != "" {
 		apiWithAPIKey, err = cloudflare.New(config.ApiKey, config.EmailId, cloudflare.HTTPClient(httpClient))
 		if err != nil {
 			return nil, err

@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"testing"
 
@@ -17,13 +18,14 @@ import (
 )
 
 var (
-	ctx       = context.Background()
-	accountID = "b37e72c7341f3de17a1bfde947cb8f93"
-	emailId   = "miguel.angel.chavez.martinez@gmail.com"
-	userId    = "9d9a62a5b834a8c9c5cf43cd234dfd4a"
-	memberID  = "c03c9ac2229f0bf5d75ef307c10b3b17"
-	apiKey    = os.Getenv("BATON_API_KEY")
-	apiToken  = os.Getenv("BATON_API_TOKEN")
+	ctx        = context.Background()
+	accountID  = "b37e72c7341f3de17a1bfde947cb8f93"
+	emailId    = "miguel.angel.chavez.martinez@gmail.com"
+	userId     = "9d9a62a5b834a8c9c5cf43cd234dfd4a"
+	memberID   = "c03c9ac2229f0bf5d75ef307c10b3b17"
+	httpClient = getHttpClientForTesting()
+	apiKey     = os.Getenv("BATON_API_KEY")
+	apiToken   = os.Getenv("BATON_API_TOKEN")
 )
 
 func TestUpdateAccountMember(t *testing.T) {
@@ -40,27 +42,20 @@ func TestUpdateAccountMember(t *testing.T) {
 	if apiKey == "" && apiToken == "" {
 		t.Skip()
 	}
-	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
-	assert.Nil(t, err)
-	r := roleResourceType{
-		resourceType: resourceTypeRole,
-		client: &cloudflare.API{
-			APIKey:    apiKey,
-			APIToken:  apiToken,
-			APIEmail:  emailId,
-			BaseURL:   baseURL,
-			AccountID: accountID,
-		},
-		httpClient: uhttp.NewBaseHttpClient(httpClient),
-		accountId:  accountID,
-		emailId:    emailId,
-	}
+	roleBuilder := getRoleBuilderForTesting(&cloudflare.API{
+		APIKey:    apiKey,
+		APIToken:  apiToken,
+		APIEmail:  emailId,
+		BaseURL:   baseURL,
+		AccountID: accountID,
+	})
 	for _, role := range rolesId {
 		roles = append(roles, cloudflare.AccountRole{
 			ID: role,
 		})
 	}
-	accountMember, err := r.UpdateAccountMember(ctx, accountID, memberID, cloudflare.AccountMember{
+
+	accountMember, err := roleBuilder.UpdateAccountMember(ctx, accountID, memberID, cloudflare.AccountMember{
 		Roles: roles,
 	})
 	assert.Nil(t, err)
@@ -78,8 +73,6 @@ func TestResourceTypeGrantFails(t *testing.T) {
 	if apiKey == "" && apiToken == "" {
 		t.Skip()
 	}
-	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
-	assert.Nil(t, err)
 	accUser := getAccountMemberForTesting(accountID, userId, userEmail)
 	principal, err := userResource(*accUser)
 	assert.Nil(t, err)
@@ -87,22 +80,8 @@ func TestResourceTypeGrantFails(t *testing.T) {
 	resource, err := roleResource(*role, resourceTypeRole, nil)
 	assert.Nil(t, err)
 	entitlement := getEntitlementForTesting(resource, resourceDisplayName, roleEntitlement)
-	if apiToken != "" {
-		client, err = cloudflare.NewWithAPIToken(apiToken, cloudflare.HTTPClient(httpClient))
-		assert.Nil(t, err)
-	}
-
-	if apiKey != "" {
-		client, err = cloudflare.New(apiKey, emailId, cloudflare.HTTPClient(httpClient))
-		assert.Nil(t, err)
-	}
-	roleBuilder := roleResourceType{
-		resourceType: resourceTypeRole,
-		client:       client,
-		httpClient:   uhttp.NewBaseHttpClient(httpClient),
-		accountId:    accountID,
-		emailId:      emailId,
-	}
+	client = getClientForTesting(apiToken, apiKey)
+	roleBuilder := getRoleBuilderForTesting(client)
 	_, err = roleBuilder.Grant(ctx, principal, entitlement)
 	assert.NotNil(t, err)
 	errMsg := fmt.Sprintf("cloudflare-connector: user %s already has this role", principal.DisplayName)
@@ -120,8 +99,6 @@ func TestResourceTypeGrant(t *testing.T) {
 	if apiKey == "" && apiToken == "" {
 		t.Skip()
 	}
-	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
-	assert.Nil(t, err)
 	accUser := getAccountMemberForTesting(accountID, userId, userEmail)
 	principal, err := userResource(*accUser)
 	assert.Nil(t, err)
@@ -129,22 +106,8 @@ func TestResourceTypeGrant(t *testing.T) {
 	resource, err := roleResource(*role, resourceTypeRole, nil)
 	assert.Nil(t, err)
 	entitlement := getEntitlementForTesting(resource, resourceDisplayName, roleEntitlement)
-	if apiToken != "" {
-		client, err = cloudflare.NewWithAPIToken(apiToken, cloudflare.HTTPClient(httpClient))
-		assert.Nil(t, err)
-	}
-
-	if apiKey != "" {
-		client, err = cloudflare.New(apiKey, emailId, cloudflare.HTTPClient(httpClient))
-		assert.Nil(t, err)
-	}
-	roleBuilder := roleResourceType{
-		resourceType: resourceTypeRole,
-		client:       client,
-		httpClient:   uhttp.NewBaseHttpClient(httpClient),
-		accountId:    accountID,
-		emailId:      emailId,
-	}
+	client = getClientForTesting(apiToken, apiKey)
+	roleBuilder := getRoleBuilderForTesting(client)
 	_, err = roleBuilder.Grant(ctx, principal, entitlement)
 	assert.Nil(t, err)
 }
@@ -162,30 +125,14 @@ func TestResourceTypeRevoke(t *testing.T) {
 	if apiKey == "" && apiToken == "" {
 		t.Skip()
 	}
-	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
-	assert.Nil(t, err)
 	accUser := getAccountMemberForTesting(accountID, userId, userEmail)
 	ur, err := userResource(*accUser)
 	assert.Nil(t, err)
 	role := getRoleForTesting(roleId, resourceDisplayName, roleEntitlement)
 	resource, err := roleResource(*role, resourceTypeRole, nil)
 	assert.Nil(t, err)
-	if apiToken != "" {
-		client, err = cloudflare.NewWithAPIToken(apiToken, cloudflare.HTTPClient(httpClient))
-		assert.Nil(t, err)
-	}
-
-	if apiKey != "" {
-		client, err = cloudflare.New(apiKey, emailId, cloudflare.HTTPClient(httpClient))
-		assert.Nil(t, err)
-	}
-	roleBuilder := roleResourceType{
-		resourceType: resourceTypeRole,
-		client:       client,
-		httpClient:   uhttp.NewBaseHttpClient(httpClient),
-		accountId:    accountID,
-		emailId:      emailId,
-	}
+	client = getClientForTesting(apiToken, apiKey)
+	roleBuilder := getRoleBuilderForTesting(client)
 	gr := grant.NewGrant(resource, roleName, ur.Id)
 	annos := annotations.Annotations(gr.Annotations)
 	v1Identifier := &v2.V1Identifier{
@@ -195,6 +142,16 @@ func TestResourceTypeRevoke(t *testing.T) {
 	gr.Annotations = annos
 	_, err = roleBuilder.Revoke(ctx, gr)
 	assert.Nil(t, err)
+}
+
+func getRoleBuilderForTesting(client *cloudflare.API) *roleResourceType {
+	return &roleResourceType{
+		resourceType: resourceTypeRole,
+		client:       client,
+		httpClient:   uhttp.NewBaseHttpClient(httpClient),
+		accountId:    accountID,
+		emailId:      emailId,
+	}
 }
 
 func getAccountMemberForTesting(accountId, userId, email string) *cloudflare.AccountMember {
@@ -225,4 +182,22 @@ func getEntitlementForTesting(resource *v2.Resource, resourceDisplayName, roleEn
 	}
 
 	return ent.NewAssignmentEntitlement(resource, roleEntitlement, options...)
+}
+
+func getHttpClientForTesting() *http.Client {
+	httpClient, _ := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
+	return httpClient
+}
+
+func getClientForTesting(apiToken, apiKey string) *cloudflare.API {
+	var client *cloudflare.API
+	if apiToken != "" {
+		client, _ = cloudflare.NewWithAPIToken(apiToken, cloudflare.HTTPClient(httpClient))
+	}
+
+	if apiKey != "" {
+		client, _ = cloudflare.New(apiKey, emailId, cloudflare.HTTPClient(httpClient))
+	}
+
+	return client
 }

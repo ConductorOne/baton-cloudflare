@@ -65,10 +65,10 @@ jobs:
         run: ./scripts/get-baton.sh && mv baton /usr/local/bin
       - name: Get baton resources
         run: baton resources
-      # - name: Check for grant before revoking
-      #   run: |
-      #    ./baton-cloudflare
-      #     baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
+      - name: Check for grant before revoking
+        run: |
+         ./baton-cloudflare
+          baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
       - name: Revoke grants
         run: |
           ./baton-cloudflare

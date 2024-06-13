@@ -78,8 +78,8 @@ func (c *Cloudflare) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.
 }
 
 func (c *Cloudflare) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
-	rs := []connectorbuilder.ResourceSyncer{}
-	rs = append(rs, userBuilder(c.client, c.accountId))
-	rs = append(rs, roleBuilder(c.client, c.accountId, c.emailId))
-	return rs
+	return []connectorbuilder.ResourceSyncer{
+		userBuilder(c.client, c.accountId),
+		roleBuilder(c.client, c.accountId, c.emailId),
+	}
 }

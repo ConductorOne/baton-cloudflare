@@ -7,6 +7,7 @@ import (
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
+	"github.com/conductorone/baton-sdk/pkg/uhttp"
 )
 
 const (
@@ -71,4 +72,8 @@ func getError(err error) error {
 	}
 
 	return err
+}
+
+func WithAuthorizationBearerHeader(token string) uhttp.RequestOption {
+	return uhttp.WithHeader("Authorization", "Bearer "+token)
 }

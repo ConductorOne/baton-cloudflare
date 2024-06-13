@@ -25,9 +25,10 @@ const (
 	// The list custom roles endpoint does not return the super admin role, so we are manually adding it with Cloudflares super admin role ID.
 	SuperAdminRoleId    = "33666b9c79b9a5273fc7344ff42f953d"
 	errMissingAccountID = "required missing account ID"
+	XAuthEmailHeaderKey = "X-Auth-Email"
+	XAuthKeyHeaderKey   = "X-Auth-Key"
+	NF                  = -1
 )
-
-const NF = -1
 
 var ErrMissingAccountID = errors.New(errMissingAccountID)
 
@@ -124,10 +125,6 @@ func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resour
 	return rv, "", nil, nil
 }
 
-func WithAuthorizationBearerHeader(token string) uhttp.RequestOption {
-	return uhttp.WithHeader("Authorization", "Bearer "+token)
-}
-
 // GetAccountMember returns an account member.
 func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID string, memberID string) (*cloudflare.AccountMemberDetailResponse, error) {
 	var accountMemberListResponse = &cloudflare.AccountMemberDetailResponse{}
@@ -152,6 +149,8 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 		uri,
 		uhttp.WithAcceptJSONHeader(),
 		WithAuthorizationBearerHeader(r.client.APIToken),
+		uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId),
+		uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey),
 	)
 	if err != nil {
 		return nil, err
@@ -260,9 +259,6 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 		})
 	}
 
-	// member, err := r.client.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
-	// 	Roles: roles,
-	// })
 	member, err := r.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
 		Roles: roles,
 	})
@@ -283,10 +279,6 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 // Modify an account member
 // https://developers.cloudflare.com/api/operations/account-members-update-member
 func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, memberID string, accountMemberRoles cloudflare.AccountMember) (*cloudflare.AccountMember, error) {
-	const (
-		XAuthEmailHeaderKey = "X-Auth-Email"
-		XAuthKeyHeaderKey   = "X-Auth-Key"
-	)
 	var (
 		accountMemberListResponse = &Response{}
 		body                      struct {
@@ -320,6 +312,7 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 		uri,
 		uhttp.WithJSONBody(body),
 		uhttp.WithAcceptJSONHeader(),
+		WithAuthorizationBearerHeader(r.client.APIToken),
 		uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId),
 		uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey),
 	)

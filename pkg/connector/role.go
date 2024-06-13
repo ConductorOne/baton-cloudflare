@@ -381,7 +381,7 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 		}
 	}
 
-	member, err := r.apiWithAPIToken.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
+	member, err := r.apiWithAPIKey.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{
 		Roles: roles,
 	})
 	if err != nil {

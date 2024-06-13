@@ -27,6 +27,8 @@ const (
 	errMissingAccountID = "required missing account ID"
 )
 
+const NF = -1
+
 var ErrMissingAccountID = errors.New(errMissingAccountID)
 
 type roleResourceType struct {
@@ -184,13 +186,12 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 		userPos := slices.IndexFunc(user.Roles, func(r cloudflare.AccountRole) bool {
 			return r.ID == roleId
 		})
-		if userPos == -1 {
+		if userPos == NF {
 			continue
 		}
 
 		roleName := user.Roles[userPos].Name
 		accUser := cloudflare.AccountMember{
-			ID: user.ID,
 			User: cloudflare.AccountMemberUserDetails{
 				ID:        user.User.ID,
 				FirstName: user.User.FirstName,
@@ -220,6 +221,7 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 	var (
 		err    error
 		userId = principal.Id.Resource
+		roleId = entitlement.Resource.Id.Resource
 	)
 	l := ctxzap.Extract(ctx)
 	if principal.Id.ResourceType != resourceTypeUser.Id {
@@ -242,10 +244,10 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 	}
 
 	roles := []cloudflare.AccountRole{{
-		ID: entitlement.Resource.Id.Resource},
+		ID: roleId},
 	}
 	for _, role := range account.Result.Roles {
-		if role.ID == entitlement.Resource.Id.Resource {
+		if role.ID == roleId {
 			l.Warn(
 				"cloudflare-connector: user already has this role",
 				zap.String("principal_id", principal.Id.String()),
@@ -379,6 +381,18 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 				ID: role.ID,
 			})
 		}
+	}
+
+	index := slices.IndexFunc(account.Result.Roles, func(c cloudflare.AccountRole) bool {
+		return c.ID == roleId
+	})
+	if index == NF {
+		l.Warn(
+			"cloudflare-connector: user does not have this role",
+			zap.String("principal_id", principal.Id.String()),
+			zap.String("principal_type", principal.Id.ResourceType),
+		)
+		return nil, fmt.Errorf("cloudflare-connector: user %s does not have this role", principal.DisplayName)
 	}
 
 	member, err := r.apiWithAPIKey.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{

@@ -8,7 +8,9 @@ import (
 
 	"github.com/cloudflare/cloudflare-go"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
+	"github.com/conductorone/baton-sdk/pkg/annotations"
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
+	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/stretchr/testify/assert"
@@ -19,16 +21,16 @@ var (
 	accountID = "b37e72c7341f3de17a1bfde947cb8f93"
 	emailId   = "miguel.angel.chavez.martinez@gmail.com"
 	userId    = "9d9a62a5b834a8c9c5cf43cd234dfd4a"
+	memberID  = "c03c9ac2229f0bf5d75ef307c10b3b17"
 	apiKey    = os.Getenv("BATON_API_KEY")
 	apiToken  = os.Getenv("BATON_API_TOKEN")
 )
 
 func TestUpdateAccountMember(t *testing.T) {
 	var (
-		roles    []cloudflare.AccountRole
-		memberID = "c03c9ac2229f0bf5d75ef307c10b3b17"
-		baseURL  = "https://api.cloudflare.com/client/v4"
-		rolesId  = []string{
+		roles   []cloudflare.AccountRole
+		baseURL = "https://api.cloudflare.com/client/v4"
+		rolesId = []string{
 			"35956457e745b2af7331713a1ddf4fdb",
 			"08abaa5235c2196d5f3daf457190161b",
 			"3a170f9cfd62f321d6d835dc44bfe6dc",
@@ -138,6 +140,49 @@ func TestResourceTypeGrant(t *testing.T) {
 		emailId:         emailId,
 	}
 	_, err = roleBuilder.Grant(ctx, principal, entitlement)
+	assert.Nil(t, err)
+}
+
+func TestResourceTypeRevoke(t *testing.T) {
+	// --revoke-grant "role:1963e6e3aca5ac9a7a91609a0040ab02:Firewall:user:9d9a62a5b834a8c9c5cf43cd234dfd4a"
+	var (
+		resourceDisplayName = "Firewall Cloudflare role"
+		roleEntitlement     = "Firewall"
+		userEmail           = "miguel_chavez_m@hotmail.com"
+		roleId              = "1963e6e3aca5ac9a7a91609a0040ab02"
+		roleName            = "Firewall"
+	)
+	if apiKey == "" && apiToken == "" {
+		t.Skip()
+	}
+	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
+	assert.Nil(t, err)
+	accUser := getAccountMemberForTesting(accountID, userId, userEmail)
+	ur, err := userResource(*accUser)
+	assert.Nil(t, err)
+	role := getRoleForTesting(roleId, resourceDisplayName, roleEntitlement)
+	resource, err := roleResource(*role, resourceTypeRole, nil)
+	assert.Nil(t, err)
+	apiWithAPIToken, err := cloudflare.NewWithAPIToken(apiToken, cloudflare.HTTPClient(httpClient))
+	assert.Nil(t, err)
+	apiWithAPIKey, err := cloudflare.New(apiKey, emailId, cloudflare.HTTPClient(httpClient))
+	assert.Nil(t, err)
+	roleBuilder := roleResourceType{
+		resourceType:    resourceTypeRole,
+		apiWithAPIKey:   apiWithAPIKey,
+		apiWithAPIToken: apiWithAPIToken,
+		httpClient:      uhttp.NewBaseHttpClient(httpClient),
+		accountId:       accountID,
+		emailId:         emailId,
+	}
+	gr := grant.NewGrant(resource, roleName, ur.Id)
+	annos := annotations.Annotations(gr.Annotations)
+	v1Identifier := &v2.V1Identifier{
+		Id: V1GrantID(V1MembershipEntitlementID(roleId), userId),
+	}
+	annos.Update(v1Identifier)
+	gr.Annotations = annos
+	_, err = roleBuilder.Revoke(ctx, gr)
 	assert.Nil(t, err)
 }
 

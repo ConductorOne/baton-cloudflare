@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/cloudflare/cloudflare-go"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -14,50 +13,36 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 )
 
-var (
-	resourceTypeUser = &v2.ResourceType{
-		Id:          "user",
-		DisplayName: "User",
-		Traits: []v2.ResourceType_Trait{
-			v2.ResourceType_TRAIT_USER,
-		},
-		Annotations: v1AnnotationsForResourceType("user"),
-	}
-	resourceTypeRole = &v2.ResourceType{
-		Id:          "role",
-		DisplayName: "Role",
-		Traits: []v2.ResourceType_Trait{
-			v2.ResourceType_TRAIT_ROLE,
-		},
-		Annotations: v1AnnotationsForResourceType("role"),
-	}
-)
-
-type Config struct {
-	AccountId string
-	ApiKey    string
-}
-
-type Cloudflare struct {
-	api       *cloudflare.API
-	accountId string
-}
-
 func New(ctx context.Context, config Config) (*Cloudflare, error) {
+	var (
+		client *cloudflare.API
+		err    error
+	)
+
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, nil))
 	if err != nil {
 		return nil, err
 	}
-	api, err := cloudflare.NewWithAPIToken(config.ApiKey, cloudflare.HTTPClient(httpClient))
-	if err != nil {
-		log.Fatal(err)
+
+	if config.ApiToken != "" {
+		client, err = cloudflare.NewWithAPIToken(config.ApiToken, cloudflare.HTTPClient(httpClient))
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	rv := &Cloudflare{
-		api:       api,
-		accountId: config.AccountId,
+	if config.ApiKey != "" && config.EmailId != "" {
+		client, err = cloudflare.New(config.ApiKey, config.EmailId, cloudflare.HTTPClient(httpClient))
+		if err != nil {
+			return nil, err
+		}
 	}
-	return rv, nil
+
+	return &Cloudflare{
+		client:    client,
+		accountId: config.AccountId,
+		emailId:   config.EmailId,
+	}, nil
 }
 
 func (c *Cloudflare) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
@@ -78,10 +63,13 @@ func (c *Cloudflare) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error
 }
 
 func (c *Cloudflare) Validate(ctx context.Context) (annotations.Annotations, error) {
-	_, _, err := c.api.Account(ctx, c.accountId)
-	if err != nil {
-		return nil, fmt.Errorf("Cloudflare: failed to validate API keys: %w", err)
+	if c.accountId != "" {
+		_, _, err := c.client.Account(ctx, c.accountId)
+		if err != nil {
+			return nil, fmt.Errorf("Cloudflare: failed to validate API keys: %w", err)
+		}
 	}
+
 	return nil, nil
 }
 
@@ -90,7 +78,8 @@ func (c *Cloudflare) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.
 }
 
 func (c *Cloudflare) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
-	rs := []connectorbuilder.ResourceSyncer{}
-	rs = append(rs, userBuilder(c.api, c.accountId), roleBuilder(c.api, c.accountId))
-	return rs
+	return []connectorbuilder.ResourceSyncer{
+		userBuilder(c.client, c.accountId),
+		roleBuilder(c.client, c.accountId, c.emailId),
+	}
 }

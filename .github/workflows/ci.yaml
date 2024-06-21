@@ -5,30 +5,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.19.x
+          go-version: 1.22.x
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Run linters
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v5
         with:
           version: latest
           args: --timeout=3m
   go-test:
     strategy:
       matrix:
-        go-version: [1.18.x, 1.19.x]
+        go-version: [1.22.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Install Go
         if: success()
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: go tests
         run: go test -v -covermode=count -json ./... > test.json
       - name: annotate go tests
@@ -36,3 +36,52 @@ jobs:
         uses: guyarb/golang-test-annotations@v0.5.1
         with:
           test-results: test.json
+  
+  test:
+    runs-on: ubuntu-latest
+    env:
+        BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
+        BATON_EMAIL_ID: ${{ secrets.BATON_EMAIL }}
+        BATON_ACCOUNT_ID: ${{ secrets.BATON_ACCOUNT_ID }}
+        BATON_LOG_LEVEL: 'debug'
+        # Revoke grants variable
+        CONNECTOR_GRANT: 'role:1963e6e3aca5ac9a7a91609a0040ab02:Firewall:user:9d9a62a5b834a8c9c5cf43cd234dfd4a'
+        # Grant entitlements variables
+        CONNECTOR_ENTITLEMENT: 'role:1963e6e3aca5ac9a7a91609a0040ab02:Firewall'
+        CONNECTOR_PRINCIPAL: '9d9a62a5b834a8c9c5cf43cd234dfd4a'
+        CONNECTOR_PRINCIPAL_TYPE: 'user'
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.22.x
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Build baton-cloudflare
+        run: go build ./cmd/baton-cloudflare
+      - name: Run baton-cloudflare
+        run: ./baton-cloudflare
+      - name: Install baton
+        run: ./scripts/get-baton.sh && mv baton /usr/local/bin
+      - name: Get baton resources
+        run: baton resources
+      - name: Check for grant before revoking
+        run: |
+         ./baton-cloudflare
+          baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
+      - name: Revoke grants
+        run: |
+          ./baton-cloudflare
+          ./baton-cloudflare --revoke-grant ${{ env.CONNECTOR_GRANT }}
+      - name: Check grant was revoked
+        run: |
+          ./baton-cloudflare
+           baton grants --entitlement ${{ env.CONNECTOR_ENTITLEMENT }} --output-format=json | jq -e "try(.grants[]? | any(.principal.id.resource !=\"${{ env.CONNECTOR_PRINCIPAL }}\")) // true"
+      - name: Grant entitlement
+        run: | 
+          ./baton-cloudflare
+          ./baton-cloudflare --grant-entitlement ${{ env.CONNECTOR_ENTITLEMENT }} --grant-principal ${{ env.CONNECTOR_PRINCIPAL }} --grant-principal-type ${{ env.CONNECTOR_PRINCIPAL_TYPE }}
+      - name: Check grant was re-granted
+        run: |
+          ./baton-cloudflare
+          baton grants --entitlement ${{ env.CONNECTOR_ENTITLEMENT }} --output-format=json | jq -e ".grants | any(.principal.id.resource ==\"${{ env.CONNECTOR_PRINCIPAL }}\")"

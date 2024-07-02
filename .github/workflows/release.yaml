@@ -28,7 +28,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v5
         with:
           version: "~> v2"
-          args: release --rm-dist
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.RELENG_GITHUB_TOKEN }}
           AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
@@ -56,6 +56,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v5
         with:
           version: "~> v2"
-          args: release --rm-dist -f .goreleaser.docker.yaml
+          args: release --clean -f .goreleaser.docker.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.RELENG_GITHUB_TOKEN }}

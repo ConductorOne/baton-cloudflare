@@ -1,0 +1,25 @@
+name: repo-sync
+on:
+  # Allow this workflow to be manually triggered
+  workflow_dispatch:
+env:
+  SOURCE_BRANCH: main
+  SOURCE_REPOSITORY: ConductorOne/baton-template
+jobs:
+  repo-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v4
+        if: github.repository != env.SOURCE_REPOSITORY
+        with:
+          token: ${{ secrets.REPO_SYNC_PAT }}
+      - name: actions-template-sync
+        uses: AndreasAugustin/actions-template-sync@v1.1.8
+        if: github.repository != env.SOURCE_REPOSITORY
+        with:
+          github_token: ${{ secrets.REPO_SYNC_PAT }}
+          source_repo_path: ${{ env.SOURCE_REPOSITORY }}
+          upstream_branch: ${{ env.SOURCE_BRANCH }}
+          pr_title: "Fix release to work with goreleaser v2"
+          pr_commit_msg: "Fix release to work with goreleaser v2"

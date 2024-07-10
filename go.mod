@@ -6,7 +6,7 @@ toolchain go1.22.3
 
 require (
 	github.com/cloudflare/cloudflare-go v0.56.0
-	github.com/conductorone/baton-sdk v0.1.39
+	github.com/conductorone/baton-sdk v0.1.47
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/spf13/cobra v1.8.0
 	go.uber.org/zap v1.27.0
@@ -14,6 +14,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 )
 

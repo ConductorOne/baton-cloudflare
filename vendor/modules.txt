@@ -143,7 +143,7 @@ github.com/benbjohnson/clock
 # github.com/cloudflare/cloudflare-go v0.56.0
 ## explicit; go 1.17
 github.com/cloudflare/cloudflare-go
-# github.com/conductorone/baton-sdk v0.1.47
+# github.com/conductorone/baton-sdk v0.2.7
 ## explicit; go 1.21
 github.com/conductorone/baton-sdk/internal/connector
 github.com/conductorone/baton-sdk/pb/c1/c1z/v1
@@ -165,6 +165,7 @@ github.com/conductorone/baton-sdk/pkg/dotc1z
 github.com/conductorone/baton-sdk/pkg/dotc1z/manager
 github.com/conductorone/baton-sdk/pkg/dotc1z/manager/local
 github.com/conductorone/baton-sdk/pkg/dotc1z/manager/s3
+github.com/conductorone/baton-sdk/pkg/field
 github.com/conductorone/baton-sdk/pkg/helpers
 github.com/conductorone/baton-sdk/pkg/logging
 github.com/conductorone/baton-sdk/pkg/metrics
@@ -407,7 +408,7 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.23.0
+# golang.org/x/crypto v0.24.0
 ## explicit; go 1.18
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -430,7 +431,7 @@ golang.org/x/exp/slices
 golang.org/x/exp/slog
 golang.org/x/exp/slog/internal
 golang.org/x/exp/slog/internal/buffer
-# golang.org/x/net v0.25.0
+# golang.org/x/net v0.26.0
 ## explicit; go 1.18
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
@@ -448,7 +449,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.7.0
 ## explicit; go 1.18
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.20.0
+# golang.org/x/sys v0.21.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
@@ -458,7 +459,7 @@ golang.org/x/sys/windows/svc
 golang.org/x/sys/windows/svc/debug
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/mgr
-# golang.org/x/text v0.15.0
+# golang.org/x/text v0.16.0
 ## explicit; go 1.18
 golang.org/x/text/encoding
 golang.org/x/text/encoding/internal

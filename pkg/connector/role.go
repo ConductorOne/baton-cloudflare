@@ -322,13 +322,17 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 
 	resp, err := r.httpClient.Do(req, uhttp.WithJSONResponse(&accountMemberListResponse))
 	if err != nil {
-		return nil, &CloudflareError{
+		ce := &CloudflareError{
 			ErrorMessage:     err.Error(),
 			ErrorDescription: err.Error(),
-			ErrorCode:        resp.StatusCode,
-			ErrorSummary:     fmt.Sprint(resp.Body),
 			ErrorLink:        endpointUrl,
 		}
+		if resp != nil {
+			ce.ErrorCode = resp.StatusCode
+			ce.ErrorSummary = fmt.Sprint(resp.Body)
+		}
+
+		return nil, ce
 	}
 
 	defer resp.Body.Close()

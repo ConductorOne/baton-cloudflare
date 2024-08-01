@@ -2,11 +2,12 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 var ErrMissingListID = errors.New("required missing list ID")
@@ -25,8 +26,9 @@ type TeamsList struct {
 
 // TeamsListItem represents a single list item.
 type TeamsListItem struct {
-	Value     string     `json:"value"`
-	CreatedAt *time.Time `json:"created_at,omitempty"`
+	Value       string     `json:"value"`
+	Description string     `json:"description,omitempty"`
+	CreatedAt   *time.Time `json:"created_at,omitempty"`
 }
 
 // PatchTeamsList represents a patch request for appending/removing list items.
@@ -172,6 +174,7 @@ func (api *API) ListTeamsListItems(ctx context.Context, rc *ResourceContainer, p
 	var teamListItems []TeamsListItem
 	var lResponse TeamsListItemsListResponse
 	for {
+		lResponse = TeamsListItemsListResponse{}
 		uri := buildURI(
 			fmt.Sprintf("/%s/%s/gateway/lists/%s/items", rc.Level, rc.Identifier, params.ListID),
 			params,

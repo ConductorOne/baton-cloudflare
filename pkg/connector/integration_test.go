@@ -43,11 +43,10 @@ func TestUpdateAccountMember(t *testing.T) {
 		t.Skip()
 	}
 	roleBuilder := getRoleBuilderForTesting(&cloudflare.API{
-		APIKey:    apiKey,
-		APIToken:  apiToken,
-		APIEmail:  emailId,
-		BaseURL:   baseURL,
-		AccountID: accountID,
+		APIKey:   apiKey,
+		APIToken: apiToken,
+		APIEmail: emailId,
+		BaseURL:  baseURL,
 	})
 	for _, role := range rolesId {
 		roles = append(roles, cloudflare.AccountRole{

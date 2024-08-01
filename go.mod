@@ -1,4 +1,4 @@
-module github.com/ConductorOne/baton-cloudflare
+module github.com/conductorone/baton-cloudflare
 
 go 1.21
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"slices"
@@ -329,7 +330,13 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 		}
 		if resp != nil {
 			ce.ErrorCode = resp.StatusCode
-			ce.ErrorSummary = fmt.Sprint(resp.Body)
+			bodyBytes, err := io.ReadAll(resp.Body)
+			if err != nil {
+				ce.ErrorSummary = fmt.Sprintf("Error reading response body %s", err.Error())
+				return nil, ce
+			}
+
+			ce.ErrorSummary = string(bodyBytes)
 		}
 
 		return nil, ce

@@ -71,7 +71,9 @@ func roleResource(role cloudflare.AccountRole, resourceTypeRole *v2.ResourceType
 }
 
 func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	roles, err := o.client.AccountRoles(ctx, o.accountId)
+	// Empty params causes ListAccountRoles to auto paginate and return all account roles
+	params := cloudflare.ListAccountRolesParams{}
+	roles, err := o.client.ListAccountRoles(ctx, cloudflare.AccountIdentifier(o.accountId), params)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -84,7 +86,6 @@ func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagin
 		rv = append(rv, roleResource)
 	}
 
-	// adminRoleResource, err := sdk.NewRoleResource("Super Administrator - All Privileges", resourceTypeRole, nil, SuperAdminRoleId, nil, annos)
 	adminRoleResource, err := roleResource(cloudflare.AccountRole{
 		ID:   SuperAdminRoleId,
 		Name: "Super Administrator - All Privileges",
@@ -102,7 +103,9 @@ func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resour
 		rv      []*v2.Entitlement
 		options []ent.EntitlementOption
 	)
-	roles, err := r.client.AccountRoles(ctx, r.accountId)
+	// Empty params causes ListAccountRoles to auto paginate and return all account roles
+	params := cloudflare.ListAccountRolesParams{}
+	roles, err := r.client.ListAccountRoles(ctx, cloudflare.AccountIdentifier(r.accountId), params)
 	if err != nil {
 		return nil, "", nil, wrapError(err, "failed to list roles")
 	}

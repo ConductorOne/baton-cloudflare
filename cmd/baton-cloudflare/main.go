@@ -20,14 +20,6 @@ const (
 	connectorName = "baton-cloudflare"
 )
 
-var (
-	ApiKey              = field.StringField(connector.ApiKey, field.WithRequired(true), field.WithDescription("The api key for the Cloudflare account."))
-	ApiToken            = field.StringField(connector.ApiToken, field.WithRequired(true), field.WithDescription("The api token for the Cloudflare account."))
-	AccountId           = field.StringField(connector.AccountId, field.WithRequired(true), field.WithDescription("The account id for the Cloudflare account."))
-	EmailId             = field.StringField(connector.EmailId, field.WithRequired(true), field.WithDescription("The email id for the Cloudflare account."))
-	configurationFields = []field.SchemaField{ApiKey, ApiToken, AccountId, EmailId}
-)
-
 func main() {
 	ctx := context.Background()
 	_, cmd, err := configSchema.DefineConfiguration(ctx,
@@ -50,6 +42,10 @@ func main() {
 
 func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
+	if err := validateConfig(ctx, cfg); err != nil {
+		return nil, err
+	}
+
 	cb, err := connector.New(ctx, cfg)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))

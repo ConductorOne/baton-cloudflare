@@ -6,17 +6,18 @@ toolchain go1.22.3
 
 require (
 	github.com/cloudflare/cloudflare-go v0.101.0
-	github.com/conductorone/baton-sdk v0.1.47
+	github.com/conductorone/baton-sdk v0.2.18
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
-	github.com/spf13/cobra v1.8.0
 	go.uber.org/zap v1.27.0
 )
 
 require (
+	github.com/allegro/bigcache/v3 v3.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/spf13/cobra v1.8.0 // indirect
 )
 
 require (
@@ -74,7 +75,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.18.2 // indirect
+	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.9.0
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect

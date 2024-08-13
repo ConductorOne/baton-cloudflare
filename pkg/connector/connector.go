@@ -9,14 +9,26 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
+	"github.com/spf13/viper"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 )
 
-func New(ctx context.Context, config Config) (*Cloudflare, error) {
+const (
+	ApiKey    = "api-key"
+	ApiToken  = "api-token"
+	AccountId = "account-id"
+	EmailId   = "email-id"
+)
+
+func New(ctx context.Context, cfg *viper.Viper) (*Cloudflare, error) {
 	var (
-		client *cloudflare.API
-		err    error
+		client    *cloudflare.API
+		apiKey    = cfg.GetString(ApiKey)
+		apiToken  = cfg.GetString(ApiToken)
+		accountId = cfg.GetString(AccountId)
+		emailId   = cfg.GetString(EmailId)
+		err       error
 	)
 
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, nil))
@@ -24,15 +36,15 @@ func New(ctx context.Context, config Config) (*Cloudflare, error) {
 		return nil, err
 	}
 
-	if config.ApiToken != "" {
-		client, err = cloudflare.NewWithAPIToken(config.ApiToken, cloudflare.HTTPClient(httpClient))
+	if apiToken != "" {
+		client, err = cloudflare.NewWithAPIToken(apiToken, cloudflare.HTTPClient(httpClient))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if config.ApiKey != "" && config.EmailId != "" {
-		client, err = cloudflare.New(config.ApiKey, config.EmailId, cloudflare.HTTPClient(httpClient))
+	if apiKey != "" && emailId != "" {
+		client, err = cloudflare.New(apiKey, emailId, cloudflare.HTTPClient(httpClient))
 		if err != nil {
 			return nil, err
 		}
@@ -40,8 +52,8 @@ func New(ctx context.Context, config Config) (*Cloudflare, error) {
 
 	return &Cloudflare{
 		client:    client,
-		accountId: config.AccountId,
-		emailId:   config.EmailId,
+		accountId: accountId,
+		emailId:   emailId,
 	}, nil
 }
 

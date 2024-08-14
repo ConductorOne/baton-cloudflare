@@ -9,7 +9,6 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
-	"github.com/spf13/viper"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 )
@@ -21,13 +20,13 @@ const (
 	EmailId   = "email-id"
 )
 
-func New(ctx context.Context, cfg *viper.Viper) (*Cloudflare, error) {
+func New(ctx context.Context, cfg Config) (*Cloudflare, error) {
 	var (
 		client    *cloudflare.API
-		apiKey    = cfg.GetString(ApiKey)
-		apiToken  = cfg.GetString(ApiToken)
-		accountId = cfg.GetString(AccountId)
-		emailId   = cfg.GetString(EmailId)
+		apiKey    = cfg.ApiKey
+		apiToken  = cfg.ApiToken
+		accountId = cfg.AccountId
+		emailId   = cfg.EmailId
 		err       error
 	)
 

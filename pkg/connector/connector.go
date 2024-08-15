@@ -13,13 +13,6 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 )
 
-const (
-	ApiKey    = "api-key"
-	ApiToken  = "api-token"
-	AccountId = "account-id"
-	EmailId   = "email-id"
-)
-
 func New(ctx context.Context, cfg Config) (*Cloudflare, error) {
 	var (
 		client    *cloudflare.API

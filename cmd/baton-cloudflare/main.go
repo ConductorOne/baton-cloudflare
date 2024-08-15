@@ -16,10 +16,10 @@ import (
 )
 
 var (
-	apiKeyField         = field.StringField(connector.ApiKey, field.WithDescription("The api key for the Cloudflare account."))
-	apiTokenField       = field.StringField(connector.ApiToken, field.WithDescription("The api token for the Cloudflare account."))
-	accountIdField      = field.StringField(connector.AccountId, field.WithRequired(true), field.WithDescription("The account id for the Cloudflare account."))
-	emailIdField        = field.StringField(connector.EmailId, field.WithRequired(true), field.WithDescription("The email id for the Cloudflare account."))
+	apiKeyField         = field.StringField(apiKey, field.WithDescription("The api key for the Cloudflare account."))
+	apiTokenField       = field.StringField(apiToken, field.WithDescription("The api token for the Cloudflare account."))
+	accountIdField      = field.StringField(accountId, field.WithRequired(true), field.WithDescription("The account id for the Cloudflare account."))
+	emailIdField        = field.StringField(emailId, field.WithRequired(true), field.WithDescription("The email id for the Cloudflare account."))
 	configurationFields = []field.SchemaField{apiKeyField, apiTokenField, accountIdField, emailIdField}
 	fieldRelationships  = []field.SchemaFieldRelationship{
 		field.FieldsAtLeastOneUsed(apiTokenField, apiKeyField),
@@ -33,6 +33,10 @@ var (
 const (
 	version       = "dev"
 	connectorName = "baton-cloudflare"
+	apiKey        = "api-key"
+	apiToken      = "api-token"
+	accountId     = "account-id"
+	emailId       = "email-id"
 )
 
 func main() {
@@ -58,10 +62,10 @@ func main() {
 func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
 	config := connector.Config{
-		AccountId: cfg.GetString(connector.AccountId),
-		ApiToken:  cfg.GetString(connector.ApiToken),
-		EmailId:   cfg.GetString(connector.EmailId),
-		ApiKey:    cfg.GetString(connector.ApiKey),
+		AccountId: cfg.GetString(accountId),
+		ApiToken:  cfg.GetString(apiToken),
+		EmailId:   cfg.GetString(emailId),
+		ApiKey:    cfg.GetString(apiKey),
 	}
 
 	cb, err := connector.New(ctx, config)

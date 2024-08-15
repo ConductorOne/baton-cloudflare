@@ -19,7 +19,7 @@ var (
 	apiKeyField         = field.StringField(apiKey, field.WithDescription("The api key for the Cloudflare account."))
 	apiTokenField       = field.StringField(apiToken, field.WithDescription("The api token for the Cloudflare account."))
 	accountIdField      = field.StringField(accountId, field.WithRequired(true), field.WithDescription("The account id for the Cloudflare account."))
-	emailIdField        = field.StringField(emailId, field.WithRequired(true), field.WithDescription("The email id for the Cloudflare account."))
+	emailIdField        = field.StringField(emailId, field.WithDescription("The email id for the Cloudflare account."))
 	configurationFields = []field.SchemaField{apiKeyField, apiTokenField, accountIdField, emailIdField}
 	fieldRelationships  = []field.SchemaFieldRelationship{
 		field.FieldsAtLeastOneUsed(apiTokenField, apiKeyField),

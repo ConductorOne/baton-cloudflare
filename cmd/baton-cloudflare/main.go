@@ -15,28 +15,9 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	apiKeyField         = field.StringField(apiKey, field.WithDescription("The api key for the Cloudflare account."))
-	apiTokenField       = field.StringField(apiToken, field.WithDescription("The api token for the Cloudflare account."))
-	accountIdField      = field.StringField(accountId, field.WithRequired(true), field.WithDescription("The account id for the Cloudflare account."))
-	emailIdField        = field.StringField(emailId, field.WithDescription("The email id for the Cloudflare account."))
-	configurationFields = []field.SchemaField{apiKeyField, apiTokenField, accountIdField, emailIdField}
-	fieldRelationships  = []field.SchemaFieldRelationship{
-		field.FieldsAtLeastOneUsed(apiTokenField, apiKeyField),
-		field.FieldsDependentOn(
-			[]field.SchemaField{apiKeyField},
-			[]field.SchemaField{emailIdField},
-		),
-	}
-)
-
 const (
 	version       = "dev"
 	connectorName = "baton-cloudflare"
-	apiKey        = "api-key"
-	apiToken      = "api-token"
-	accountId     = "account-id"
-	emailId       = "email-id"
 )
 
 func main() {
@@ -62,10 +43,10 @@ func main() {
 func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
 	config := connector.Config{
-		AccountId: cfg.GetString(accountId),
-		ApiToken:  cfg.GetString(apiToken),
-		EmailId:   cfg.GetString(emailId),
-		ApiKey:    cfg.GetString(apiKey),
+		AccountId: cfg.GetString(accountIdField.FieldName),
+		ApiToken:  cfg.GetString(apiTokenField.FieldName),
+		EmailId:   cfg.GetString(emailIdField.FieldName),
+		ApiKey:    cfg.GetString(apiKeyField.FieldName),
 	}
 
 	cb, err := connector.New(ctx, config)

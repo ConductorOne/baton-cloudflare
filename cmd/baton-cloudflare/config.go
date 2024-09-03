@@ -1,44 +1,38 @@
 package main
 
 import (
-	"context"
-	"fmt"
-
-	"github.com/conductorone/baton-sdk/pkg/cli"
-	"github.com/spf13/cobra"
+	"github.com/conductorone/baton-sdk/pkg/field"
 )
 
-// config defines the external configuration required for the connector to run.
-type config struct {
-	cli.BaseConfig `mapstructure:",squash"` // Puts the base config options in the same place as the connector options
-
-	ApiKey    string `mapstructure:"api-key"`
-	ApiToken  string `mapstructure:"api-token"`
-	AccountId string `mapstructure:"account-id"`
-	EmailId   string `mapstructure:"email-id"`
-}
-
-// validateConfig is run after the configuration is loaded, and should return an error if it isn't valid.
-func validateConfig(ctx context.Context, cfg *config) error {
-	if cfg.AccountId == "" {
-		return fmt.Errorf("account id is missing")
+var (
+	apiKeyField = field.StringField(
+		"api-key",
+		field.WithDescription("The api key for the Cloudflare account."),
+	)
+	apiTokenField = field.StringField(
+		"api-token",
+		field.WithDescription("The api token for the Cloudflare account."),
+	)
+	accountIdField = field.StringField(
+		"account-id",
+		field.WithRequired(true),
+		field.WithDescription("The account id for the Cloudflare account."),
+	)
+	emailIdField = field.StringField(
+		"email-id",
+		field.WithDescription("The email id for the Cloudflare account."),
+	)
+	configurationFields = []field.SchemaField{
+		apiKeyField,
+		apiTokenField,
+		accountIdField,
+		emailIdField,
 	}
-
-	if cfg.ApiToken == "" && cfg.ApiKey == "" {
-		return fmt.Errorf("either api token or api key must be provided")
+	fieldRelationships = []field.SchemaFieldRelationship{
+		field.FieldsAtLeastOneUsed(apiTokenField, apiKeyField),
+		field.FieldsDependentOn(
+			[]field.SchemaField{apiKeyField},
+			[]field.SchemaField{emailIdField},
+		),
 	}
-
-	if cfg.ApiKey != "" && cfg.EmailId == "" {
-		return fmt.Errorf("email id is missing")
-	}
-
-	return nil
-}
-
-// cmdFlags sets the cmdFlags required for the connector.
-func cmdFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().String("api-key", "", "The api key for the Cloudflare account. ($BATON_API_KEY)")
-	cmd.PersistentFlags().String("api-token", "", "The api token for the Cloudflare account. ($BATON_API_TOKEN)")
-	cmd.PersistentFlags().String("account-id", "", "The account id for the Cloudflare account. ($BATON_ACCOUNT_ID)")
-	cmd.PersistentFlags().String("email-id", "", "The email id for the Cloudflare account. ($BATON_EMAIL_ID)")
-}
+)

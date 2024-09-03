@@ -6,7 +6,7 @@ toolchain go1.22.3
 
 require (
 	github.com/cloudflare/cloudflare-go v0.102.0
-	github.com/conductorone/baton-sdk v0.2.23
+	github.com/conductorone/baton-sdk v0.2.26
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	go.uber.org/zap v1.27.0
 )

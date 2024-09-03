@@ -147,7 +147,7 @@ github.com/benbjohnson/clock
 # github.com/cloudflare/cloudflare-go v0.102.0
 ## explicit; go 1.19
 github.com/cloudflare/cloudflare-go
-# github.com/conductorone/baton-sdk v0.2.23
+# github.com/conductorone/baton-sdk v0.2.26
 ## explicit; go 1.21
 github.com/conductorone/baton-sdk/internal/connector
 github.com/conductorone/baton-sdk/pb/c1/c1z/v1

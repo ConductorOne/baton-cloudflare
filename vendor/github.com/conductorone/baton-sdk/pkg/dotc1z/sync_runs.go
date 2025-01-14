@@ -60,10 +60,13 @@ func (c *C1File) getLatestUnfinishedSync(ctx context.Context) (*syncRun, error) 
 		return nil, err
 	}
 
+	// Don't resume syncs that started over a week ago
+	oneWeekAgo := time.Now().AddDate(0, 0, -7)
 	ret := &syncRun{}
 	q := c.db.From(syncRuns.Name())
 	q = q.Select("sync_id", "started_at", "ended_at", "sync_token")
 	q = q.Where(goqu.C("ended_at").IsNull())
+	q = q.Where(goqu.C("started_at").Gte(oneWeekAgo))
 	q = q.Order(goqu.C("started_at").Desc())
 	q = q.Limit(1)
 
@@ -120,7 +123,7 @@ func (c *C1File) getFinishedSync(ctx context.Context, offset uint) (*syncRun, er
 	return ret, nil
 }
 
-func (c *C1File) ListSyncRuns(ctx context.Context, pageToken string, pageSize int) ([]*syncRun, string, error) {
+func (c *C1File) ListSyncRuns(ctx context.Context, pageToken string, pageSize uint) ([]*syncRun, string, error) {
 	err := c.validateDb(ctx)
 	if err != nil {
 		return nil, "", err
@@ -138,7 +141,7 @@ func (c *C1File) ListSyncRuns(ctx context.Context, pageToken string, pageSize in
 	}
 
 	q = q.Order(goqu.C("id").Asc())
-	q = q.Limit(uint(pageSize + 1))
+	q = q.Limit(pageSize + 1)
 
 	var ret []*syncRun
 
@@ -153,7 +156,7 @@ func (c *C1File) ListSyncRuns(ctx context.Context, pageToken string, pageSize in
 	}
 	defer rows.Close()
 
-	count := 0
+	var count uint = 0
 	lastRow := 0
 	for rows.Next() {
 		count++

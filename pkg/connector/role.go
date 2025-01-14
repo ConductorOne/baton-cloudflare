@@ -99,32 +99,19 @@ func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagin
 }
 
 func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resource, token *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	var (
-		rv      []*v2.Entitlement
-		options []ent.EntitlementOption
-	)
-	// Empty params causes ListAccountRoles to auto paginate and return all account roles
-	params := cloudflare.ListAccountRolesParams{}
-	roles, err := r.client.ListAccountRoles(ctx, cloudflare.AccountIdentifier(r.accountId), params)
-	if err != nil {
-		return nil, "", nil, wrapError(err, "failed to list roles")
+	rv := []*v2.Entitlement{
+		ent.NewAssignmentEntitlement(
+			resource,
+			roleMemberEntitlement,
+			ent.WithGrantableTo(resourceTypeUser),
+			ent.WithDisplayName(
+				fmt.Sprintf("%s Member Role", resource.DisplayName),
+			),
+			ent.WithDescription(
+				fmt.Sprintf("Has the %s role in Cloudflare", resource.DisplayName),
+			),
+		),
 	}
-
-	for _, role := range roles {
-		options = []ent.EntitlementOption{
-			ent.WithGrantableTo(resourceTypeRole),
-			ent.WithDisplayName(fmt.Sprintf("%s Role %s", resource.DisplayName, role.Name)),
-			ent.WithDescription(fmt.Sprintf("%s of %s Cloudflare role", role.Name, resource.DisplayName)),
-		}
-		rv = append(rv, ent.NewAssignmentEntitlement(resource, role.Name, options...))
-	}
-
-	options = []ent.EntitlementOption{
-		ent.WithGrantableTo(resourceTypeRole),
-		ent.WithDisplayName(fmt.Sprintf("%s Role %s", resource.DisplayName, roleMemberEntitlement)),
-		ent.WithDescription(fmt.Sprintf("%s of %s Cloudflare role", roleMemberEntitlement, resource.DisplayName)),
-	}
-	rv = append(rv, ent.NewAssignmentEntitlement(resource, roleMemberEntitlement, options...))
 
 	return rv, "", nil, nil
 }
@@ -148,13 +135,20 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 		return nil, err
 	}
 
+	opts := []uhttp.RequestOption{
+		uhttp.WithAcceptJSONHeader(),
+		uhttp.WithBearerToken(r.client.APIToken),
+	}
+	if r.emailId != "" {
+		opts = append(opts, uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId))
+	}
+	if r.client.APIKey != "" {
+		opts = append(opts, uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey))
+	}
 	req, err := r.httpClient.NewRequest(ctx,
 		http.MethodGet,
 		uri,
-		uhttp.WithAcceptJSONHeader(),
-		WithAuthorizationBearerHeader(r.client.APIToken),
-		uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId),
-		uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey),
+		opts...,
 	)
 	if err != nil {
 		return nil, err
@@ -192,7 +186,6 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 			continue
 		}
 
-		roleName := user.Roles[userPos].Name
 		accUser := cloudflare.AccountMember{
 			User: cloudflare.AccountMemberUserDetails{
 				ID:        user.User.ID,
@@ -206,7 +199,7 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 			return nil, "", nil, wrapError(err, "failed to create user resource")
 		}
 
-		gr := grant.NewGrant(resource, roleName, ur.Id)
+		gr := grant.NewGrant(resource, roleMemberEntitlement, ur.Id)
 		annos := annotations.Annotations(gr.Annotations)
 		v1Identifier := &v2.V1Identifier{
 			Id: V1GrantID(V1MembershipEntitlementID(roleId), user.ID),
@@ -311,14 +304,21 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 		return nil, err
 	}
 
+	opts := []uhttp.RequestOption{
+		uhttp.WithJSONBody(body),
+		uhttp.WithAcceptJSONHeader(),
+		uhttp.WithBearerToken(r.client.APIToken),
+	}
+	if r.emailId != "" {
+		opts = append(opts, uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId))
+	}
+	if r.client.APIKey != "" {
+		opts = append(opts, uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey))
+	}
 	req, err := r.httpClient.NewRequest(ctx,
 		http.MethodPut,
 		uri,
-		uhttp.WithJSONBody(body),
-		uhttp.WithAcceptJSONHeader(),
-		WithAuthorizationBearerHeader(r.client.APIToken),
-		uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId),
-		uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey),
+		opts...,
 	)
 	if err != nil {
 		return nil, err

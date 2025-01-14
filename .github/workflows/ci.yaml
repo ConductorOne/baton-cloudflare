@@ -47,10 +47,10 @@ jobs:
         BATON_ACCOUNT_ID: ${{ secrets.BATON_ACCOUNT_ID }}
         BATON_LOG_LEVEL: 'debug'
         # Revoke grants variable
-        CONNECTOR_GRANT: 'role:1963e6e3aca5ac9a7a91609a0040ab02:member:user:df289b42197385b7a4e3cef5e4b0a525'
+        CONNECTOR_GRANT: 'role:1963e6e3aca5ac9a7a91609a0040ab02:member:user:9d9a62a5b834a8c9c5cf43cd234dfd4a'
         # Grant entitlements variables
         CONNECTOR_ENTITLEMENT: 'role:1963e6e3aca5ac9a7a91609a0040ab02:member'
-        CONNECTOR_PRINCIPAL: 'df289b42197385b7a4e3cef5e4b0a525'
+        CONNECTOR_PRINCIPAL: '9d9a62a5b834a8c9c5cf43cd234dfd4a'
         CONNECTOR_PRINCIPAL_TYPE: 'user'
     steps:
       - name: Install Go
@@ -67,6 +67,9 @@ jobs:
         run: ./scripts/get-baton.sh && mv baton /usr/local/bin
       - name: Get baton resources
         run: baton resources
+      - name: Grant entitlement
+        run: |
+          ./baton-cloudflare --grant-entitlement ${{ env.CONNECTOR_ENTITLEMENT }} --grant-principal ${{ env.CONNECTOR_PRINCIPAL }} --grant-principal-type ${{ env.CONNECTOR_PRINCIPAL_TYPE }}
       - name: Check for grant before revoking
         run: |
          ./baton-cloudflare
@@ -80,7 +83,7 @@ jobs:
           ./baton-cloudflare
            baton grants --entitlement ${{ env.CONNECTOR_ENTITLEMENT }} --output-format=json | jq -e "try(.grants[]? | any(.principal.id.resource !=\"${{ env.CONNECTOR_PRINCIPAL }}\")) // true"
       - name: Grant entitlement
-        run: | 
+        run: |
           ./baton-cloudflare
           ./baton-cloudflare --grant-entitlement ${{ env.CONNECTOR_ENTITLEMENT }} --grant-principal ${{ env.CONNECTOR_PRINCIPAL }} --grant-principal-type ${{ env.CONNECTOR_PRINCIPAL_TYPE }}
       - name: Check grant was re-granted

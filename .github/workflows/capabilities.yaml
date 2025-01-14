@@ -18,6 +18,10 @@ jobs:
       - name: Build
         run: go build -o connector ./cmd/baton-cloudflare
       - name: Run and save output
+        env:
+          BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
+          BATON_EMAIL_ID: ${{ secrets.BATON_EMAIL }}
+          BATON_ACCOUNT_ID: ${{ secrets.BATON_ACCOUNT_ID }}
         run: ./connector capabilities > baton_capabilities.json
       - name: Commit changes
         uses: EndBug/add-and-commit@v9

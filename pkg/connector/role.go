@@ -135,13 +135,20 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 		return nil, err
 	}
 
+	opts := []uhttp.RequestOption{
+		uhttp.WithAcceptJSONHeader(),
+		uhttp.WithBearerToken(r.client.APIToken),
+	}
+	if r.emailId != "" {
+		opts = append(opts, uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId))
+	}
+	if r.client.APIKey != "" {
+		opts = append(opts, uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey))
+	}
 	req, err := r.httpClient.NewRequest(ctx,
 		http.MethodGet,
 		uri,
-		uhttp.WithAcceptJSONHeader(),
-		WithAuthorizationBearerHeader(r.client.APIToken),
-		uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId),
-		uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey),
+		opts...,
 	)
 	if err != nil {
 		return nil, err
@@ -297,14 +304,21 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 		return nil, err
 	}
 
+	opts := []uhttp.RequestOption{
+		uhttp.WithJSONBody(body),
+		uhttp.WithAcceptJSONHeader(),
+		uhttp.WithBearerToken(r.client.APIToken),
+	}
+	if r.emailId != "" {
+		opts = append(opts, uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId))
+	}
+	if r.client.APIKey != "" {
+		opts = append(opts, uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey))
+	}
 	req, err := r.httpClient.NewRequest(ctx,
 		http.MethodPut,
 		uri,
-		uhttp.WithJSONBody(body),
-		uhttp.WithAcceptJSONHeader(),
-		WithAuthorizationBearerHeader(r.client.APIToken),
-		uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId),
-		uhttp.WithHeader(XAuthKeyHeaderKey, r.client.APIKey),
+		opts...,
 	)
 	if err != nil {
 		return nil, err

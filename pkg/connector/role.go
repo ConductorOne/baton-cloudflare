@@ -99,32 +99,19 @@ func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagin
 }
 
 func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resource, token *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	var (
-		rv      []*v2.Entitlement
-		options []ent.EntitlementOption
-	)
-	// Empty params causes ListAccountRoles to auto paginate and return all account roles
-	params := cloudflare.ListAccountRolesParams{}
-	roles, err := r.client.ListAccountRoles(ctx, cloudflare.AccountIdentifier(r.accountId), params)
-	if err != nil {
-		return nil, "", nil, wrapError(err, "failed to list roles")
+	rv := []*v2.Entitlement{
+		ent.NewAssignmentEntitlement(
+			resource,
+			roleMemberEntitlement,
+			ent.WithGrantableTo(resourceTypeUser),
+			ent.WithDisplayName(
+				fmt.Sprintf("%s Member Role", resource.DisplayName),
+			),
+			ent.WithDescription(
+				fmt.Sprintf("Has the %s role in Cloudflare", resource.DisplayName),
+			),
+		),
 	}
-
-	for _, role := range roles {
-		options = []ent.EntitlementOption{
-			ent.WithGrantableTo(resourceTypeRole),
-			ent.WithDisplayName(fmt.Sprintf("%s Role %s", resource.DisplayName, role.Name)),
-			ent.WithDescription(fmt.Sprintf("%s of %s Cloudflare role", role.Name, resource.DisplayName)),
-		}
-		rv = append(rv, ent.NewAssignmentEntitlement(resource, role.Name, options...))
-	}
-
-	options = []ent.EntitlementOption{
-		ent.WithGrantableTo(resourceTypeRole),
-		ent.WithDisplayName(fmt.Sprintf("%s Role %s", resource.DisplayName, roleMemberEntitlement)),
-		ent.WithDescription(fmt.Sprintf("%s of %s Cloudflare role", roleMemberEntitlement, resource.DisplayName)),
-	}
-	rv = append(rv, ent.NewAssignmentEntitlement(resource, roleMemberEntitlement, options...))
 
 	return rv, "", nil, nil
 }

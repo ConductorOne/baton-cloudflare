@@ -179,7 +179,6 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 			continue
 		}
 
-		roleName := user.Roles[userPos].Name
 		accUser := cloudflare.AccountMember{
 			User: cloudflare.AccountMemberUserDetails{
 				ID:        user.User.ID,
@@ -193,7 +192,7 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 			return nil, "", nil, wrapError(err, "failed to create user resource")
 		}
 
-		gr := grant.NewGrant(resource, roleName, ur.Id)
+		gr := grant.NewGrant(resource, roleMemberEntitlement, ur.Id)
 		annos := annotations.Annotations(gr.Annotations)
 		v1Identifier := &v2.V1Identifier{
 			Id: V1GrantID(V1MembershipEntitlementID(roleId), user.ID),

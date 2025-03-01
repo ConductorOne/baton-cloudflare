@@ -1,8 +1,8 @@
 module github.com/conductorone/baton-cloudflare
 
-go 1.21
+go 1.23
 
-toolchain go1.22.3
+toolchain go1.23.6
 
 require (
 	github.com/cloudflare/cloudflare-go v0.102.0

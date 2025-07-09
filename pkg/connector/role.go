@@ -228,9 +228,17 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 		return nil, fmt.Errorf("baton-cloudflare: only users can be granted role membership")
 	}
 
-	memberId, err := getMemberId(ctx, r, userId)
+	userTrait, err := rs.GetUserTrait(principal)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("baton-cloudflare: user trait not found on principal")
+	}
+
+	memberId, found := rs.GetProfileStringValue(userTrait.GetProfile(), memberIdProfileKey)
+	if !found || memberId == "" {
+		memberId, err = getMemberId(ctx, r, userId)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	account, err := r.GetAccountMember(ctx, r.accountId, memberId)
@@ -238,8 +246,10 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 		return nil, fmt.Errorf("error: %s", err.Error())
 	}
 
-	roles := []cloudflare.AccountRole{{
-		ID: roleId},
+	roles := []cloudflare.AccountRole{
+		{
+			ID: roleId,
+		},
 	}
 	for _, role := range account.Result.Roles {
 		if role.ID == roleId {
@@ -248,7 +258,7 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 				zap.String("principal_id", principal.Id.String()),
 				zap.String("principal_type", principal.Id.ResourceType),
 			)
-			return nil, fmt.Errorf("cloudflare-connector: user %s already has this role", principal.DisplayName)
+			return annotations.New(&v2.GrantAlreadyExists{}), nil
 		}
 
 		roles = append(roles, cloudflare.AccountRole{
@@ -350,18 +360,34 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 }
 
 func getMemberId(ctx context.Context, r *roleResourceType, userId string) (string, error) {
-	memberUsers, _, err := r.client.AccountMembers(ctx, r.accountId, cloudflare.PaginationOptions{})
-	if err != nil {
-		return "", wrapError(err, "failed to list user members")
-	}
+	processedMemberCount := 0
+	perPage := 50
+	page := 1
 
-	for _, memberUser := range memberUsers {
-		if memberUser.User.ID == userId {
-			return memberUser.ID, nil
+	for {
+		memberUsers, resp, err := r.client.AccountMembers(ctx, r.accountId, cloudflare.PaginationOptions{
+			Page:    page,
+			PerPage: perPage,
+		})
+		if err != nil {
+			return "", wrapError(err, "failed to list user members")
 		}
+
+		for _, memberUser := range memberUsers {
+			if memberUser.User.ID == userId {
+				return memberUser.ID, nil
+			}
+		}
+
+		processedMemberCount += perPage
+		if processedMemberCount >= resp.Total {
+			break
+		}
+
+		page++
 	}
 
-	return "", nil
+	return "", fmt.Errorf("cloudflare-connector: account member not found for user with id: %s", userId)
 }
 
 func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
@@ -379,9 +405,18 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 
 	userId := principal.Id.Resource
 	roleId := entitlement.Resource.Id.Resource
-	memberId, err := getMemberId(ctx, r, userId)
+
+	userTrait, err := rs.GetUserTrait(principal)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("baton-cloudflare: user trait not found on principal")
+	}
+
+	memberId, found := rs.GetProfileStringValue(userTrait.GetProfile(), memberIdProfileKey)
+	if !found || memberId == "" {
+		memberId, err = getMemberId(ctx, r, userId)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	account, err := r.GetAccountMember(ctx, r.accountId, memberId)
@@ -407,7 +442,7 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 			zap.String("principal_id", principal.Id.String()),
 			zap.String("principal_type", principal.Id.ResourceType),
 		)
-		return nil, fmt.Errorf("cloudflare-connector: user %s does not have this role", principal.DisplayName)
+		return annotations.New(&v2.GrantAlreadyRevoked{}), nil
 	}
 
 	member, err := r.UpdateAccountMember(ctx, r.accountId, memberId, cloudflare.AccountMember{

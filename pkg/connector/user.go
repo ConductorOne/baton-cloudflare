@@ -11,6 +11,8 @@ import (
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 )
 
+const memberIdProfileKey = "member_id"
+
 type UserResourceType struct {
 	resourceType *v2.ResourceType
 	client       *cloudflare.API
@@ -26,10 +28,11 @@ func userResource(member cloudflare.AccountMember) (*v2.Resource, error) {
 	firstName := user.FirstName
 	lastName := user.LastName
 	profile := map[string]interface{}{
-		"login":      user.Email,
-		"first_name": firstName,
-		"last_name":  lastName,
-		"email":      user.Email,
+		"login":            user.Email,
+		"first_name":       firstName,
+		"last_name":        lastName,
+		"email":            user.Email,
+		memberIdProfileKey: member.ID,
 	}
 
 	userTraits := []rs.UserTraitOption{

@@ -52,6 +52,8 @@ jobs:
         CONNECTOR_ENTITLEMENT: 'role:1963e6e3aca5ac9a7a91609a0040ab02:member'
         CONNECTOR_PRINCIPAL: '9d9a62a5b834a8c9c5cf43cd234dfd4a'
         CONNECTOR_PRINCIPAL_TYPE: 'user'
+        # Fake ID for failure testing
+        FAKE_PRINCIPAL_ID: 'fake-id-that-does-not-exist-12345'
     steps:
       - name: Install Go
         uses: actions/setup-go@v5
@@ -74,6 +76,19 @@ jobs:
         run: |
          ./baton-cloudflare
           baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
+      - name: Test grant failure with fake ID
+        run: |
+          set +e  # Don't exit on error
+          ./baton-cloudflare --grant-entitlement ${{ env.CONNECTOR_ENTITLEMENT }} --grant-principal ${{ env.FAKE_PRINCIPAL_ID }} --grant-principal-type ${{ env.CONNECTOR_PRINCIPAL_TYPE }}
+          exit_code=$?
+          set -e  # Re-enable exit on error
+
+          if [ $exit_code -eq 0 ]; then
+            echo "ERROR: Grant with fake ID should have failed but succeeded"
+            exit 1
+          else
+            echo "SUCCESS: Grant with fake ID failed as expected (exit code: $exit_code)"
+          fi
       - name: Revoke grants
         run: |
           ./baton-cloudflare

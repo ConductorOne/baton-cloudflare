@@ -18,7 +18,8 @@
       "capabilities":  [
         "CAPABILITY_SYNC",
         "CAPABILITY_PROVISION"
-      ]
+      ],
+      "permissions":  {}
     },
     {
       "resourceType":  {
@@ -36,7 +37,8 @@
       },
       "capabilities":  [
         "CAPABILITY_SYNC"
-      ]
+      ],
+      "permissions":  {}
     }
   ],
   "connectorCapabilities":  [

@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"os"
 
+	cfg "github.com/conductorone/baton-cloudflare/pkg/config"
 	"github.com/conductorone/baton-cloudflare/pkg/connector"
-	configSchema "github.com/conductorone/baton-sdk/pkg/config"
+	"github.com/conductorone/baton-sdk/pkg/config"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
-	"github.com/conductorone/baton-sdk/pkg/field"
 	"github.com/conductorone/baton-sdk/pkg/types"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -22,10 +21,11 @@ const (
 
 func main() {
 	ctx := context.Background()
-	_, cmd, err := configSchema.DefineConfiguration(ctx,
+	_, cmd, err := config.DefineConfiguration(
+		ctx,
 		connectorName,
 		getConnector,
-		field.NewConfiguration(configurationFields, fieldRelationships...),
+		cfg.Config,
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
@@ -40,26 +40,26 @@ func main() {
 	}
 }
 
-func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer, error) {
+func getConnector(ctx context.Context, c *cfg.Cloudflare) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
-	config := connector.Config{
-		AccountId: cfg.GetString(accountIdField.FieldName),
-		ApiToken:  cfg.GetString(apiTokenField.FieldName),
-		EmailId:   cfg.GetString(emailIdField.FieldName),
-		ApiKey:    cfg.GetString(apiKeyField.FieldName),
+	connConfig := connector.Config{
+		AccountId: c.AccountId,
+		ApiToken:  c.ApiToken,
+		EmailId:   c.EmailId,
+		ApiKey:    c.ApiKey,
 	}
 
-	cb, err := connector.New(ctx, config)
+	cb, err := connector.New(ctx, connConfig)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err
 	}
 
-	connector, err := connectorbuilder.NewConnector(ctx, cb)
+	conn, err := connectorbuilder.NewConnector(ctx, cb)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err
 	}
 
-	return connector, nil
+	return conn, nil
 }

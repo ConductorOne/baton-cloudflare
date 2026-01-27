@@ -44,10 +44,10 @@ func TestConfigs(t *testing.T) {
 
 	test.ExerciseTestCasesFromExpressions(
 		t,
-		field.NewConfiguration(
-			configurationFields,
-			fieldRelationships...,
-		),
+		field.Configuration{
+			Fields:      configurationFields,
+			Constraints: fieldRelationships,
+		},
 		nil,
 		ustrings.ParseFlags,
 		testCases,

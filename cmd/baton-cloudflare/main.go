@@ -8,6 +8,7 @@ import (
 	"github.com/conductorone/baton-cloudflare/pkg/connector"
 	configSchema "github.com/conductorone/baton-sdk/pkg/config"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
+	"github.com/conductorone/baton-sdk/pkg/connectorrunner"
 	"github.com/conductorone/baton-sdk/pkg/field"
 	"github.com/conductorone/baton-sdk/pkg/types"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
@@ -25,7 +26,11 @@ func main() {
 	_, cmd, err := configSchema.DefineConfiguration(ctx,
 		connectorName,
 		getConnector,
-		field.NewConfiguration(configurationFields, fieldRelationships...),
+		field.Configuration{
+			Fields:      configurationFields,
+			Constraints: fieldRelationships,
+		},
+		connectorrunner.WithDefaultCapabilitiesConnectorBuilder(&connector.Cloudflare{}),
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())

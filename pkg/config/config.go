@@ -7,10 +7,12 @@ import (
 var (
 	ApiKeyField = field.StringField(
 		"api-key",
+		field.WithIsSecret(true),
 		field.WithDescription("The api key for the Cloudflare account."),
 	)
 	ApiTokenField = field.StringField(
 		"api-token",
+		field.WithIsSecret(true),
 		field.WithDescription("The api token for the Cloudflare account."),
 	)
 	AccountIdField = field.StringField(

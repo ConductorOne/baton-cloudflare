@@ -9,6 +9,7 @@ import (
 	"github.com/conductorone/baton-cloudflare/pkg/connector"
 	"github.com/conductorone/baton-sdk/pkg/config"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
+	"github.com/conductorone/baton-sdk/pkg/connectorrunner"
 	"github.com/conductorone/baton-sdk/pkg/types"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
@@ -26,6 +27,7 @@ func main() {
 		connectorName,
 		getConnector,
 		cfg.Config,
+		connectorrunner.WithDefaultCapabilitiesConnectorBuilder(&connector.Cloudflare{}),
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())

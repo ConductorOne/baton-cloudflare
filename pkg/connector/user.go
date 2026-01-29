@@ -6,8 +6,6 @@ import (
 
 	"github.com/cloudflare/cloudflare-go"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
-	"github.com/conductorone/baton-sdk/pkg/annotations"
-	"github.com/conductorone/baton-sdk/pkg/pagination"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 )
 
@@ -55,16 +53,16 @@ func userResource(member cloudflare.AccountMember) (*v2.Resource, error) {
 	return resource, nil
 }
 
-func (o *UserResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	page, err := convertPageToken(pt.Token)
+func (o *UserResourceType) List(ctx context.Context, _ *v2.ResourceId, opts rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {
+	page, err := convertPageToken(opts.PageToken)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("Cloudflare: invalid page token error")
+		return nil, nil, fmt.Errorf("Cloudflare: invalid page token error")
 	}
 
 	pageOpts := cloudflare.PaginationOptions{Page: page}
 	users, resp, err := o.client.AccountMembers(ctx, o.accountId, pageOpts)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("cloudflare: could not retrieve users: %w", err)
+		return nil, nil, fmt.Errorf("cloudflare: could not retrieve users: %w", err)
 	}
 
 	nextPage := convertNextPageToken(resp.Page, len(users))
@@ -72,20 +70,20 @@ func (o *UserResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagin
 	for _, user := range users {
 		userResource, err := userResource(user)
 		if err != nil {
-			return nil, "", nil, err
+			return nil, nil, err
 		}
 		rv = append(rv, userResource)
 	}
 
-	return rv, nextPage, nil, nil
+	return rv, &rs.SyncOpResults{NextPageToken: nextPage}, nil
 }
 
-func (o *UserResourceType) Entitlements(_ context.Context, _ *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+func (o *UserResourceType) Entitlements(_ context.Context, _ *v2.Resource, _ rs.SyncOpAttrs) ([]*v2.Entitlement, *rs.SyncOpResults, error) {
+	return nil, nil, nil
 }
 
-func (o *UserResourceType) Grants(_ context.Context, _ *v2.Resource, _ *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+func (o *UserResourceType) Grants(_ context.Context, _ *v2.Resource, _ rs.SyncOpAttrs) ([]*v2.Grant, *rs.SyncOpResults, error) {
+	return nil, nil, nil
 }
 
 func userBuilder(client *cloudflare.API, accountId string) *UserResourceType {

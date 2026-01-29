@@ -6,39 +6,41 @@ import (
 	"io"
 
 	"github.com/cloudflare/cloudflare-go"
+	cfg "github.com/conductorone/baton-cloudflare/pkg/config"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
+	"github.com/conductorone/baton-sdk/pkg/cli"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 )
 
-func New(ctx context.Context, cfg Config) (*Cloudflare, error) {
+func New(ctx context.Context, cc *cfg.Cloudflare, opts *cli.ConnectorOpts) (connectorbuilder.ConnectorBuilderV2, []connectorbuilder.Opt, error) {
 	var (
 		client    *cloudflare.API
-		apiKey    = cfg.ApiKey
-		apiToken  = cfg.ApiToken
-		accountId = cfg.AccountId
-		emailId   = cfg.EmailId
+		apiKey    = cc.ApiKey
+		apiToken  = cc.ApiToken
+		accountId = cc.AccountId
+		emailId   = cc.EmailId
 		err       error
 	)
 
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, nil))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if apiToken != "" {
 		client, err = cloudflare.NewWithAPIToken(apiToken, cloudflare.HTTPClient(httpClient))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	if apiKey != "" && emailId != "" {
 		client, err = cloudflare.New(apiKey, emailId, cloudflare.HTTPClient(httpClient))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -46,7 +48,7 @@ func New(ctx context.Context, cfg Config) (*Cloudflare, error) {
 		client:    client,
 		accountId: accountId,
 		emailId:   emailId,
-	}, nil
+	}, nil, nil
 }
 
 func (c *Cloudflare) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
@@ -85,8 +87,8 @@ func (c *Cloudflare) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.
 	return "", nil, nil
 }
 
-func (c *Cloudflare) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
-	return []connectorbuilder.ResourceSyncer{
+func (c *Cloudflare) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncerV2 {
+	return []connectorbuilder.ResourceSyncerV2{
 		userBuilder(c.client, c.accountId),
 		roleBuilder(c.client, c.accountId, c.emailId),
 	}

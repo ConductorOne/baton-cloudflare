@@ -12,7 +12,6 @@ import (
 	"github.com/cloudflare/cloudflare-go"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
-	"github.com/conductorone/baton-sdk/pkg/pagination"
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
@@ -70,18 +69,18 @@ func roleResource(role cloudflare.AccountRole, resourceTypeRole *v2.ResourceType
 	return ret, nil
 }
 
-func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, opts rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {
 	// Empty params causes ListAccountRoles to auto paginate and return all account roles
 	params := cloudflare.ListAccountRolesParams{}
 	roles, err := o.client.ListAccountRoles(ctx, cloudflare.AccountIdentifier(o.accountId), params)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, err
 	}
 	rv := make([]*v2.Resource, 0, len(roles))
 	for _, role := range roles {
 		roleResource, err := roleResource(role, resourceTypeRole, nil)
 		if err != nil {
-			return nil, "", nil, err
+			return nil, nil, err
 		}
 		rv = append(rv, roleResource)
 	}
@@ -91,14 +90,14 @@ func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, pt *pagin
 		Name: "Super Administrator - All Privileges",
 	}, resourceTypeRole, nil)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, err
 	}
 	rv = append(rv, adminRoleResource)
 
-	return rv, "", nil, nil
+	return rv, &rs.SyncOpResults{}, nil
 }
 
-func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resource, token *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
+func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resource, opts rs.SyncOpAttrs) ([]*v2.Entitlement, *rs.SyncOpResults, error) {
 	rv := []*v2.Entitlement{
 		ent.NewAssignmentEntitlement(
 			resource,
@@ -113,7 +112,7 @@ func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resour
 		),
 	}
 
-	return rv, "", nil, nil
+	return rv, &rs.SyncOpResults{}, nil
 }
 
 // GetAccountMember returns an account member.
@@ -163,17 +162,17 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 	return accountMemberListResponse, err
 }
 
-func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
+func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, opts rs.SyncOpAttrs) ([]*v2.Grant, *rs.SyncOpResults, error) {
 	var rv []*v2.Grant
-	page, err := convertPageToken(pt.Token)
+	page, err := convertPageToken(opts.PageToken)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("Cloudflare: invalid page token error")
+		return nil, nil, fmt.Errorf("Cloudflare: invalid page token error")
 	}
 
 	pageOpts := cloudflare.PaginationOptions{Page: page}
 	users, resp, err := r.client.AccountMembers(ctx, r.accountId, pageOpts)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, err
 	}
 
 	roleId := resource.Id.Resource
@@ -196,20 +195,18 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, pt
 		}
 		ur, err := userResource(accUser)
 		if err != nil {
-			return nil, "", nil, wrapError(err, "failed to create user resource")
+			return nil, nil, wrapError(err, "failed to create user resource")
 		}
 
 		gr := grant.NewGrant(resource, roleMemberEntitlement, ur.Id)
-		annos := annotations.Annotations(gr.Annotations)
 		v1Identifier := &v2.V1Identifier{
 			Id: V1GrantID(V1MembershipEntitlementID(roleId), user.ID),
 		}
-		annos.Update(v1Identifier)
-		gr.Annotations = annos
+		grant.WithAnnotation(v1Identifier)(gr)
 		rv = append(rv, gr)
 	}
 
-	return rv, nextPage, nil, nil
+	return rv, &rs.SyncOpResults{NextPageToken: nextPage}, nil
 }
 
 func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {

@@ -164,7 +164,7 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 
 func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, opts rs.SyncOpAttrs) ([]*v2.Grant, *rs.SyncOpResults, error) {
 	var rv []*v2.Grant
-	page, err := convertPageToken(opts.PageToken)
+	page, err := convertPageToken(opts.PageToken.Token)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Cloudflare: invalid page token error")
 	}

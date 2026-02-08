@@ -25,6 +25,11 @@ var (
 		field.WithDescription("The email id for the Cloudflare account."),
 	)
 
+	BaseURLField = field.StringField(
+		"base-url",
+		field.WithDescription("Override the Cloudflare API URL (for testing)"),
+	)
+
 	FieldRelationships = []field.SchemaFieldRelationship{
 		field.FieldsAtLeastOneUsed(ApiTokenField, ApiKeyField),
 		field.FieldsDependentOn(
@@ -40,6 +45,7 @@ var Config = field.NewConfiguration([]field.SchemaField{
 	ApiTokenField,
 	AccountIdField,
 	EmailIdField,
+	BaseURLField,
 }, field.WithConstraints(FieldRelationships...))
 
 func ValidateConfig(cfg *Cloudflare) error {

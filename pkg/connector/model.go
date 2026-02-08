@@ -7,6 +7,7 @@ type Config struct {
 	ApiToken  string
 	EmailId   string
 	ApiKey    string
+	BaseURL   string
 }
 
 type Cloudflare struct {

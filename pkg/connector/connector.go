@@ -22,6 +22,7 @@ func New(ctx context.Context, cc *cfg.Cloudflare, opts *cli.ConnectorOpts) (conn
 		apiToken  = cc.ApiToken
 		accountId = cc.AccountId
 		emailId   = cc.EmailId
+		baseURL   = cc.BaseUrl
 		err       error
 	)
 
@@ -30,15 +31,21 @@ func New(ctx context.Context, cc *cfg.Cloudflare, opts *cli.ConnectorOpts) (conn
 		return nil, nil, err
 	}
 
+	// Build options slice
+	cfOpts := []cloudflare.Option{cloudflare.HTTPClient(httpClient)}
+	if baseURL != "" {
+		cfOpts = append(cfOpts, cloudflare.BaseURL(baseURL))
+	}
+
 	if apiToken != "" {
-		client, err = cloudflare.NewWithAPIToken(apiToken, cloudflare.HTTPClient(httpClient))
+		client, err = cloudflare.NewWithAPIToken(apiToken, cfOpts...)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 
 	if apiKey != "" && emailId != "" {
-		client, err = cloudflare.New(apiKey, emailId, cloudflare.HTTPClient(httpClient))
+		client, err = cloudflare.New(apiKey, emailId, cfOpts...)
 		if err != nil {
 			return nil, nil, err
 		}

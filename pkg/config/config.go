@@ -57,6 +57,7 @@ var Config = field.NewConfiguration(
 			DisplayName: "Email + API key",
 			HelpText:    "Use an API key with email for authentication.",
 			Fields:      []field.SchemaField{accountIdField, emailIdField, apiKeyField},
+			Default:     true,
 		},
 	}),
 )

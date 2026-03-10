@@ -49,6 +49,7 @@ func getConnector(ctx context.Context, c *cfg.Cloudflare) (types.ConnectorServer
 		ApiToken:  c.ApiToken,
 		EmailId:   c.EmailId,
 		ApiKey:    c.ApiKey,
+		BaseURL:   c.BaseUrl,
 	}
 
 	cb, err := connector.New(ctx, connConfig)

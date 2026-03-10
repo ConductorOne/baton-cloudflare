@@ -20,6 +20,7 @@ func New(ctx context.Context, cfg Config) (*Cloudflare, error) {
 		apiToken  = cfg.ApiToken
 		accountId = cfg.AccountId
 		emailId   = cfg.EmailId
+		baseURL   = cfg.BaseURL
 		err       error
 	)
 
@@ -28,15 +29,21 @@ func New(ctx context.Context, cfg Config) (*Cloudflare, error) {
 		return nil, err
 	}
 
+	// Build options slice
+	opts := []cloudflare.Option{cloudflare.HTTPClient(httpClient)}
+	if baseURL != "" {
+		opts = append(opts, cloudflare.BaseURL(baseURL))
+	}
+
 	if apiToken != "" {
-		client, err = cloudflare.NewWithAPIToken(apiToken, cloudflare.HTTPClient(httpClient))
+		client, err = cloudflare.NewWithAPIToken(apiToken, opts...)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if apiKey != "" && emailId != "" {
-		client, err = cloudflare.New(apiKey, emailId, cloudflare.HTTPClient(httpClient))
+		client, err = cloudflare.New(apiKey, emailId, opts...)
 		if err != nil {
 			return nil, err
 		}

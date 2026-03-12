@@ -12,6 +12,20 @@
           {
             "@type": "type.googleapis.com/c1.connector.v2.V1Identifier",
             "id": "role"
+          },
+          {
+            "@type": "type.googleapis.com/c1.connector.v2.CapabilityPermissions",
+            "permissions": [
+              {
+                "permission": "Access: Organizations, Identity Providers and Groups:Read"
+              },
+              {
+                "permission": "Account Settings: Read"
+              },
+              {
+                "permission": "Account Settings: Edit"
+              }
+            ]
           }
         ]
       },
@@ -19,7 +33,19 @@
         "CAPABILITY_SYNC",
         "CAPABILITY_PROVISION"
       ],
-      "permissions": {}
+      "permissions": {
+        "permissions": [
+          {
+            "permission": "Access: Organizations, Identity Providers and Groups:Read"
+          },
+          {
+            "permission": "Account Settings: Read"
+          },
+          {
+            "permission": "Account Settings: Edit"
+          }
+        ]
+      }
     },
     {
       "resourceType": {
@@ -32,13 +58,33 @@
           {
             "@type": "type.googleapis.com/c1.connector.v2.V1Identifier",
             "id": "user"
+          },
+          {
+            "@type": "type.googleapis.com/c1.connector.v2.CapabilityPermissions",
+            "permissions": [
+              {
+                "permission": "Access: Organizations, Identity Providers and Groups:Read"
+              },
+              {
+                "permission": "Account Settings: Read"
+              }
+            ]
           }
         ]
       },
       "capabilities": [
         "CAPABILITY_SYNC"
       ],
-      "permissions": {}
+      "permissions": {
+        "permissions": [
+          {
+            "permission": "Access: Organizations, Identity Providers and Groups:Read"
+          },
+          {
+            "permission": "Account Settings: Read"
+          }
+        ]
+      }
     }
   ],
   "connectorCapabilities": [

@@ -5,43 +5,59 @@ import (
 )
 
 var (
-	ApiKeyField = field.StringField(
+	apiKeyField = field.StringField(
 		"api-key",
-		field.WithIsSecret(true),
+		field.WithDisplayName("API Key"),
 		field.WithDescription("The api key for the Cloudflare account."),
-	)
-	ApiTokenField = field.StringField(
-		"api-token",
 		field.WithIsSecret(true),
-		field.WithDescription("The api token for the Cloudflare account."),
-	)
-	AccountIdField = field.StringField(
-		"account-id",
 		field.WithRequired(true),
+	)
+	apiTokenField = field.StringField(
+		"api-token",
+		field.WithDisplayName("API Token"),
+		field.WithDescription("The api token for the Cloudflare account."),
+		field.WithIsSecret(true),
+		field.WithRequired(true),
+	)
+	accountIdField = field.StringField(
+		"account-id",
+		field.WithDisplayName("Account ID"),
 		field.WithDescription("The account id for the Cloudflare account."),
+		field.WithRequired(true),
 	)
-	EmailIdField = field.StringField(
+	emailIdField = field.StringField(
 		"email-id",
+		field.WithDisplayName("Email ID"),
 		field.WithDescription("The email id for the Cloudflare account."),
+		field.WithRequired(true),
 	)
-
-	FieldRelationships = []field.SchemaFieldRelationship{
-		field.FieldsAtLeastOneUsed(ApiTokenField, ApiKeyField),
-		field.FieldsDependentOn(
-			[]field.SchemaField{ApiKeyField},
-			[]field.SchemaField{EmailIdField},
-		),
+	configurationFields = []field.SchemaField{
+		apiKeyField,
+		apiTokenField,
+		accountIdField,
+		emailIdField,
 	}
 )
 
 //go:generate go run ./gen
-var Config = field.NewConfiguration([]field.SchemaField{
-	ApiKeyField,
-	ApiTokenField,
-	AccountIdField,
-	EmailIdField,
-}, field.WithConstraints(FieldRelationships...))
-
-func ValidateConfig(cfg *Cloudflare) error {
-	return nil
-}
+var Config = field.NewConfiguration(
+	configurationFields,
+	field.WithConnectorDisplayName("Cloudflare"),
+	field.WithHelpUrl("/docs/baton/cloudflare"),
+	field.WithIconUrl("/static/app-icons/cloudflare.svg"),
+	field.WithFieldGroups([]field.SchemaFieldGroup{
+		{
+			Name:        "api-token-group",
+			DisplayName: "API Token",
+			HelpText:    "Use an API token for authentication.",
+			Fields:      []field.SchemaField{accountIdField, apiTokenField},
+		},
+		{
+			Name:        "api-key-group",
+			DisplayName: "Email + API key",
+			HelpText:    "Use an API key with email for authentication.",
+			Fields:      []field.SchemaField{accountIdField, emailIdField, apiKeyField},
+			Default:     true,
+		},
+	}),
+)

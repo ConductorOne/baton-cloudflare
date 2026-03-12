@@ -11,7 +11,10 @@ var (
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_USER,
 		},
-		Annotations: v1AnnotationsForResourceType("user"),
+		Annotations: v1AnnotationsWithPermissions("user", capabilityPermissions(
+			"Access: Organizations, Identity Providers and Groups:Read",
+			"Account Settings: Read",
+		)),
 	}
 	resourceTypeRole = &v2.ResourceType{
 		Id:          "role",
@@ -19,6 +22,10 @@ var (
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_ROLE,
 		},
-		Annotations: v1AnnotationsForResourceType("role"),
+		Annotations: v1AnnotationsWithPermissions("role", capabilityPermissions(
+			"Access: Organizations, Identity Providers and Groups:Read",
+			"Account Settings: Read",
+			"Account Settings: Edit",
+		)),
 	}
 )

@@ -29,11 +29,25 @@ func (b *CloudflareError) Error() string {
 	return b.ErrorMessage
 }
 
+func capabilityPermissions(perms ...string) *v2.CapabilityPermissions {
+	cp := &v2.CapabilityPermissions{}
+	for _, p := range perms {
+		cp.Permissions = append(cp.Permissions, &v2.CapabilityPermission{Permission: p})
+	}
+	return cp
+}
+
 func v1AnnotationsForResourceType(resourceTypeID string) annotations.Annotations {
 	annos := annotations.Annotations{}
 	annos.Update(&v2.V1Identifier{
 		Id: resourceTypeID,
 	})
+	return annos
+}
+
+func v1AnnotationsWithPermissions(resourceTypeID string, perms *v2.CapabilityPermissions) annotations.Annotations {
+	annos := v1AnnotationsForResourceType(resourceTypeID)
+	annos.Update(perms)
 	return annos
 }
 

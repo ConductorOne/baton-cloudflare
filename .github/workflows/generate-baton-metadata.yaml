@@ -28,6 +28,9 @@ jobs:
       - name: Build
         run: go build -o connector ./cmd/baton-cloudflare
 
+      - name: Run and save config output
+        run: ./connector config > config_schema.json
+
       - name: Run and save capabilities output
         run: ./connector capabilities > baton_capabilities.json
 
@@ -35,8 +38,10 @@ jobs:
         uses: EndBug/add-and-commit@v9
         with:
           default_author: github_actions
-          message: "Updating baton capabilities."
-          add: "baton_capabilities.json"
+          message: "Updating baton config schema and capabilities."
+          add: |
+            config_schema.json
+            baton_capabilities.json
 
   validate_metadata:
     if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]'
@@ -57,6 +62,9 @@ jobs:
       - name: Build
         run: go build -o connector ./cmd/baton-cloudflare
 
+      - name: Run and save config output
+        run: ./connector config > config_schema.json
+
       - name: Run and save capabilities output
         run: ./connector capabilities > baton_capabilities.json
 
@@ -72,6 +80,12 @@ jobs:
             CAPS_STALE=true
             echo "::warning::baton_capabilities.json differs from binary output"
             git diff -- baton_capabilities.json
+          fi
+
+          if ! git diff --quiet -- config_schema.json 2>/dev/null; then
+            CONFIG_STALE=true
+            echo "::warning::config_schema.json differs from binary output"
+            git diff -- config_schema.json
           fi
 
           if [ "$CAPS_STALE" = "true" ] || [ "$CONFIG_STALE" = "true" ]; then
@@ -103,6 +117,10 @@ jobs:
           if [ -n "$BASE_SHA" ]; then
             if ! git diff --quiet "$BASE_SHA" HEAD -- baton_capabilities.json 2>/dev/null; then
               CAPS_CHANGED=true
+            fi
+
+            if ! git diff --quiet "$BASE_SHA" HEAD -- config_schema.json 2>/dev/null; then
+              CONFIG_CHANGED=true
             fi
           fi
 

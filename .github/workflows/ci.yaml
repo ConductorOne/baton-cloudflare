@@ -13,6 +13,7 @@ jobs:
       BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
       BATON_EMAIL_ID: ${{ secrets.BATON_EMAIL }}
       BATON_ACCOUNT_ID: ${{ secrets.BATON_ACCOUNT_ID }}
+      BATON_AUTH_METHOD: 'api-key-group'
       BATON_LOG_LEVEL: 'debug'
       # Revoke grants variable
       CONNECTOR_GRANT: 'role:1963e6e3aca5ac9a7a91609a0040ab02:member:user:9d9a62a5b834a8c9c5cf43cd234dfd4a'

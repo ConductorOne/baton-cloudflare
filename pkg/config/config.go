@@ -51,13 +51,13 @@ var Config = field.NewConfiguration(
 			DisplayName: "API Token",
 			HelpText:    "Use an API token for authentication.",
 			Fields:      []field.SchemaField{accountIdField, apiTokenField},
+			Default:     true,
 		},
 		{
 			Name:        "api-key-group",
 			DisplayName: "Email + API key",
 			HelpText:    "Use an API key with email for authentication.",
 			Fields:      []field.SchemaField{accountIdField, emailIdField, apiKeyField},
-			Default:     true,
 		},
 	}),
 )

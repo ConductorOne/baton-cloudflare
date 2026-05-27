@@ -154,7 +154,7 @@ func getAccountInfo(accountInfo *v2.AccountInfo) (string, string, string, error)
 }
 
 // getRoleIDsFromProfile extracts a list of Cloudflare role IDs from the account info profile.
-// The profile field "roles" must be a list of role ID strings.
+// The profile field "roles" may arrive as []interface{} (StringListField) or a single string.
 func getRoleIDsFromProfile(accountInfo *v2.AccountInfo) []string {
 	profile := accountInfo.GetProfile()
 	if profile == nil {
@@ -165,14 +165,18 @@ func getRoleIDsFromProfile(accountInfo *v2.AccountInfo) []string {
 	if !ok {
 		return nil
 	}
-	rolesList, ok := rolesVal.([]interface{})
-	if !ok {
-		return nil
-	}
+
 	var roleIDs []string
-	for _, r := range rolesList {
-		if roleID, ok := r.(string); ok && roleID != "" {
-			roleIDs = append(roleIDs, roleID)
+	switch v := rolesVal.(type) {
+	case []interface{}:
+		for _, r := range v {
+			if roleID, ok := r.(string); ok && roleID != "" {
+				roleIDs = append(roleIDs, roleID)
+			}
+		}
+	case string:
+		if v != "" {
+			roleIDs = append(roleIDs, v)
 		}
 	}
 	return roleIDs

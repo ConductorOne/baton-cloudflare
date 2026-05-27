@@ -112,6 +112,9 @@ func (o *UserResourceType) CreateAccount(
 	}
 
 	roleIDs := getRoleIDsFromProfile(accountInfo)
+	if len(roleIDs) == 0 {
+		return nil, nil, nil, fmt.Errorf("baton-cloudflare: at least one role ID is required to invite an account member")
+	}
 
 	member, err := o.client.CreateAccountMember(ctx, cloudflare.AccountIdentifier(o.accountId), cloudflare.CreateAccountMemberParams{
 		EmailAddress: email,

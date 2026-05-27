@@ -67,13 +67,17 @@
               },
               {
                 "permission": "Account Settings: Read"
+              },
+              {
+                "permission": "Account Settings: Edit"
               }
             ]
           }
         ]
       },
       "capabilities": [
-        "CAPABILITY_SYNC"
+        "CAPABILITY_SYNC",
+        "CAPABILITY_PROVISION"
       ],
       "permissions": {
         "permissions": [
@@ -82,6 +86,9 @@
           },
           {
             "permission": "Account Settings: Read"
+          },
+          {
+            "permission": "Account Settings: Edit"
           }
         ]
       }

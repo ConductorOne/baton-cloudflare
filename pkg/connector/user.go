@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/cloudflare/cloudflare-go"
@@ -154,13 +155,16 @@ func (o *UserResourceType) Delete(ctx context.Context, resourceId *v2.ResourceId
 
 	memberID, err := findMemberIDByUserID(ctx, o.client, o.accountId, resourceId.Resource)
 	if err != nil {
+		if errors.Is(err, errMemberNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
 	err = o.client.DeleteAccountMember(ctx, o.accountId, memberID)
 	if err != nil {
-		var notFound cloudflare.NotFoundError
-		if isCloudflareNotFound(err, &notFound) {
+		var notFound *cloudflare.NotFoundError
+		if errors.As(err, &notFound) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("baton-cloudflare: failed to remove account member: %w", err)

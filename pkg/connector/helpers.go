@@ -17,6 +17,8 @@ const (
 	V1GrantIDTemplate               = "grant:%s:%s"
 )
 
+var errMemberNotFound = errors.New("baton-cloudflare: account member not found")
+
 type CloudflareError struct {
 	ErrorMessage     string                   `json:"error"`
 	ErrorDescription string                   `json:"error_description"`
@@ -124,7 +126,7 @@ func findMemberIDByUserID(ctx context.Context, client *cloudflare.API, accountID
 		page++
 	}
 
-	return "", fmt.Errorf("baton-cloudflare: account member not found for user ID %s", userID)
+	return "", fmt.Errorf("%w for user ID %s", errMemberNotFound, userID)
 }
 
 // getAccountInfo extracts the primary email and optional first/last name from AccountInfo.
@@ -180,9 +182,4 @@ func getRoleIDsFromProfile(accountInfo *v2.AccountInfo) []string {
 		}
 	}
 	return roleIDs
-}
-
-// isCloudflareNotFound checks whether an error is a Cloudflare NotFoundError.
-func isCloudflareNotFound(err error, target *cloudflare.NotFoundError) bool {
-	return errors.As(err, target)
 }

@@ -72,6 +72,40 @@ func (c *Cloudflare) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error
 	return &v2.ConnectorMetadata{
 		DisplayName: "Cloudflare",
 		Annotations: annos,
+		AccountCreationSchema: &v2.ConnectorAccountCreationSchema{
+			FieldMap: map[string]*v2.ConnectorAccountCreationSchema_Field{
+				"first_name": {
+					DisplayName: "First Name",
+					Required:    true,
+					Description: "First name of the user to invite.",
+					Field: &v2.ConnectorAccountCreationSchema_Field_StringField{
+						StringField: &v2.ConnectorAccountCreationSchema_StringField{},
+					},
+					Placeholder: "Jane",
+					Order:       1,
+				},
+				"last_name": {
+					DisplayName: "Last Name",
+					Required:    true,
+					Description: "Last name of the user to invite.",
+					Field: &v2.ConnectorAccountCreationSchema_Field_StringField{
+						StringField: &v2.ConnectorAccountCreationSchema_StringField{},
+					},
+					Placeholder: "Smith",
+					Order:       2,
+				},
+				"roles": {
+					DisplayName: "Role IDs",
+					Required:    true,
+					Description: "List of Cloudflare role IDs to assign to the new member. At least one role ID is required by Cloudflare.",
+					Field: &v2.ConnectorAccountCreationSchema_Field_StringListField{
+						StringListField: &v2.ConnectorAccountCreationSchema_StringListField{},
+					},
+					Placeholder: "role-id-1",
+					Order:       3,
+				},
+			},
+		},
 	}, nil
 }
 

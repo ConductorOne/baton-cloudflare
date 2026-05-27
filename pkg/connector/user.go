@@ -106,9 +106,9 @@ func (o *UserResourceType) CreateAccount(
 	accountInfo *v2.AccountInfo,
 	_ *v2.LocalCredentialOptions,
 ) (connectorbuilder.CreateAccountResponse, []*v2.PlaintextData, annotations.Annotations, error) {
-	email := getPrimaryEmail(accountInfo)
-	if email == "" {
-		return nil, nil, nil, fmt.Errorf("baton-cloudflare: email is required to invite an account member")
+	email, firstName, lastName, err := getAccountInfo(accountInfo)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	roleIDs := getRoleIDsFromProfile(accountInfo)
@@ -120,6 +120,15 @@ func (o *UserResourceType) CreateAccount(
 	})
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("baton-cloudflare: failed to invite account member: %w", err)
+	}
+
+	// Overlay the operator-supplied name since the invited user's Cloudflare profile
+	// may be empty until they accept; this gives C1 a meaningful display name immediately.
+	if firstName != "" {
+		member.User.FirstName = firstName
+	}
+	if lastName != "" {
+		member.User.LastName = lastName
 	}
 
 	resource, err := userResource(member)

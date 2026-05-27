@@ -127,19 +127,30 @@ func findMemberIDByUserID(ctx context.Context, client *cloudflare.API, accountID
 	return "", fmt.Errorf("baton-cloudflare: account member not found for user ID %s", userID)
 }
 
-// getPrimaryEmail returns the primary email address from AccountInfo, or the first
-// available email if no primary is marked.
-func getPrimaryEmail(accountInfo *v2.AccountInfo) string {
-	emails := accountInfo.GetEmails()
-	for _, e := range emails {
+// getAccountInfo extracts the primary email and optional first/last name from AccountInfo.
+// Email comes from the C1 user's primary email; name fields come from the provisioning profile.
+func getAccountInfo(accountInfo *v2.AccountInfo) (string, string, string, error) {
+	email := ""
+	for _, e := range accountInfo.GetEmails() {
 		if e.GetIsPrimary() {
-			return e.GetAddress()
+			email = e.GetAddress()
+			break
 		}
 	}
-	if len(emails) > 0 {
-		return emails[0].GetAddress()
+	if email == "" && len(accountInfo.GetEmails()) > 0 {
+		email = accountInfo.GetEmails()[0].GetAddress()
 	}
-	return ""
+	if email == "" {
+		return "", "", "", fmt.Errorf("baton-cloudflare: primary email is required to invite an account member")
+	}
+
+	profile := map[string]interface{}{}
+	if accountInfo.GetProfile() != nil {
+		profile = accountInfo.GetProfile().AsMap()
+	}
+	firstName, _ := profile["first_name"].(string)
+	lastName, _ := profile["last_name"].(string)
+	return email, firstName, lastName, nil
 }
 
 // getRoleIDsFromProfile extracts a list of Cloudflare role IDs from the account info profile.

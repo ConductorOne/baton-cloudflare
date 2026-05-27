@@ -77,7 +77,8 @@
       },
       "capabilities": [
         "CAPABILITY_SYNC",
-        "CAPABILITY_PROVISION"
+        "CAPABILITY_ACCOUNT_PROVISIONING",
+        "CAPABILITY_RESOURCE_DELETE"
       ],
       "permissions": {
         "permissions": [
@@ -96,7 +97,16 @@
   ],
   "connectorCapabilities": [
     "CAPABILITY_PROVISION",
-    "CAPABILITY_SYNC"
+    "CAPABILITY_SYNC",
+    "CAPABILITY_ACCOUNT_PROVISIONING",
+    "CAPABILITY_RESOURCE_DELETE"
   ],
-  "credentialDetails": {}
+  "credentialDetails": {
+    "capabilityAccountProvisioning": {
+      "supportedCredentialOptions": [
+        "CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD"
+      ],
+      "preferredCredentialOption": "CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD"
+    }
+  }
 }

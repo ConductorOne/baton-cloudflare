@@ -6,6 +6,8 @@ import (
 
 	"github.com/cloudflare/cloudflare-go"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
+	"github.com/conductorone/baton-sdk/pkg/annotations"
+	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 )
 
@@ -84,6 +86,75 @@ func (o *UserResourceType) Entitlements(_ context.Context, _ *v2.Resource, _ rs.
 
 func (o *UserResourceType) Grants(_ context.Context, _ *v2.Resource, _ rs.SyncOpAttrs) ([]*v2.Grant, *rs.SyncOpResults, error) {
 	return nil, nil, nil
+}
+
+func (o *UserResourceType) CreateAccountCapabilityDetails(_ context.Context) (*v2.CredentialDetailsAccountProvisioning, annotations.Annotations, error) {
+	return &v2.CredentialDetailsAccountProvisioning{
+		SupportedCredentialOptions: []v2.CapabilityDetailCredentialOption{
+			v2.CapabilityDetailCredentialOption_CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD,
+		},
+		PreferredCredentialOption: v2.CapabilityDetailCredentialOption_CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD,
+	}, nil, nil
+}
+
+// CreateAccount invites a user to join the Cloudflare account.
+// Cloudflare uses an invitation model — the user receives an email and must accept before gaining access.
+// The profile may include a "roles" field ([]interface{} of role ID strings) to assign initial roles.
+// At least one role ID is required by the Cloudflare API.
+func (o *UserResourceType) CreateAccount(
+	ctx context.Context,
+	accountInfo *v2.AccountInfo,
+	_ *v2.LocalCredentialOptions,
+) (connectorbuilder.CreateAccountResponse, []*v2.PlaintextData, annotations.Annotations, error) {
+	email := getPrimaryEmail(accountInfo)
+	if email == "" {
+		return nil, nil, nil, fmt.Errorf("baton-cloudflare: email is required to invite an account member")
+	}
+
+	roleIDs := getRoleIDsFromProfile(accountInfo)
+
+	member, err := o.client.CreateAccountMember(ctx, cloudflare.AccountIdentifier(o.accountId), cloudflare.CreateAccountMemberParams{
+		EmailAddress: email,
+		Roles:        roleIDs,
+		Status:       "pending",
+	})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("baton-cloudflare: failed to invite account member: %w", err)
+	}
+
+	resource, err := userResource(member)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("baton-cloudflare: failed to build user resource after invite: %w", err)
+	}
+
+	return &v2.CreateAccountResponse_ActionRequiredResult{
+		Resource: resource,
+		Message:  "A Cloudflare account invitation has been sent. The user must accept the invitation before gaining access.",
+	}, nil, nil, nil
+}
+
+// Delete removes a user from the Cloudflare account.
+// The resource ID is the Cloudflare user UUID; the member ID is resolved via API lookup.
+func (o *UserResourceType) Delete(ctx context.Context, resourceId *v2.ResourceId, _ *v2.ResourceId) (annotations.Annotations, error) {
+	if resourceId.ResourceType != resourceTypeUser.Id {
+		return nil, fmt.Errorf("baton-cloudflare: invalid resource type for delete: %s", resourceId.ResourceType)
+	}
+
+	memberID, err := findMemberIDByUserID(ctx, o.client, o.accountId, resourceId.Resource)
+	if err != nil {
+		return nil, err
+	}
+
+	err = o.client.DeleteAccountMember(ctx, o.accountId, memberID)
+	if err != nil {
+		var notFound cloudflare.NotFoundError
+		if isCloudflareNotFound(err, &notFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("baton-cloudflare: failed to remove account member: %w", err)
+	}
+
+	return nil, nil
 }
 
 func userBuilder(client *cloudflare.API, accountId string) *UserResourceType {

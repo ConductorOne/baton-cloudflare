@@ -1,10 +1,12 @@
 package connector
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 
+	"github.com/cloudflare/cloudflare-go"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
@@ -90,4 +92,82 @@ func getError(err error) error {
 
 func WithAuthorizationBearerHeader(token string) uhttp.RequestOption {
 	return uhttp.WithHeader("Authorization", "Bearer "+token)
+}
+
+// findMemberIDByUserID looks up the Cloudflare membership ID for a given user UUID.
+// The resource ID stored in baton is the user UUID (member.User.ID), but Cloudflare's
+// delete and update APIs require the membership ID (member.ID).
+func findMemberIDByUserID(ctx context.Context, client *cloudflare.API, accountID, userID string) (string, error) {
+	perPage := 50
+	page := 1
+	processed := 0
+
+	for {
+		members, resp, err := client.AccountMembers(ctx, accountID, cloudflare.PaginationOptions{
+			Page:    page,
+			PerPage: perPage,
+		})
+		if err != nil {
+			return "", fmt.Errorf("baton-cloudflare: failed to list account members: %w", err)
+		}
+
+		for _, m := range members {
+			if m.User.ID == userID {
+				return m.ID, nil
+			}
+		}
+
+		processed += len(members)
+		if processed >= resp.Total {
+			break
+		}
+		page++
+	}
+
+	return "", fmt.Errorf("baton-cloudflare: account member not found for user ID %s", userID)
+}
+
+// getPrimaryEmail returns the primary email address from AccountInfo, or the first
+// available email if no primary is marked.
+func getPrimaryEmail(accountInfo *v2.AccountInfo) string {
+	emails := accountInfo.GetEmails()
+	for _, e := range emails {
+		if e.GetIsPrimary() {
+			return e.GetAddress()
+		}
+	}
+	if len(emails) > 0 {
+		return emails[0].GetAddress()
+	}
+	return ""
+}
+
+// getRoleIDsFromProfile extracts a list of Cloudflare role IDs from the account info profile.
+// The profile field "roles" must be a list of role ID strings.
+func getRoleIDsFromProfile(accountInfo *v2.AccountInfo) []string {
+	profile := accountInfo.GetProfile()
+	if profile == nil {
+		return nil
+	}
+	profileMap := profile.AsMap()
+	rolesVal, ok := profileMap["roles"]
+	if !ok {
+		return nil
+	}
+	rolesList, ok := rolesVal.([]interface{})
+	if !ok {
+		return nil
+	}
+	var roleIDs []string
+	for _, r := range rolesList {
+		if roleID, ok := r.(string); ok && roleID != "" {
+			roleIDs = append(roleIDs, roleID)
+		}
+	}
+	return roleIDs
+}
+
+// isCloudflareNotFound checks whether an error is a Cloudflare NotFoundError.
+func isCloudflareNotFound(err error, target *cloudflare.NotFoundError) bool {
+	return errors.As(err, target)
 }

@@ -234,7 +234,7 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 
 	memberId, found := rs.GetProfileStringValue(userTrait.GetProfile(), memberIdProfileKey)
 	if !found || memberId == "" {
-		memberId, err = getMemberId(ctx, r, userId)
+		memberId, err = findMemberIDByUserID(ctx, r.client, r.accountId, userId)
 		if err != nil {
 			return nil, err
 		}
@@ -358,10 +358,6 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 	return &accountMemberListResponse.Result, nil
 }
 
-func getMemberId(ctx context.Context, r *roleResourceType, userId string) (string, error) {
-	return findMemberIDByUserID(ctx, r.client, r.accountId, userId)
-}
-
 func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
 	l := ctxzap.Extract(ctx)
 	entitlement := grant.Entitlement
@@ -385,7 +381,7 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 
 	memberId, found := rs.GetProfileStringValue(userTrait.GetProfile(), memberIdProfileKey)
 	if !found || memberId == "" {
-		memberId, err = getMemberId(ctx, r, userId)
+		memberId, err = findMemberIDByUserID(ctx, r.client, r.accountId, userId)
 		if err != nil {
 			return nil, err
 		}

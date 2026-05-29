@@ -234,7 +234,7 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 
 	memberId, found := rs.GetProfileStringValue(userTrait.GetProfile(), memberIdProfileKey)
 	if !found || memberId == "" {
-		memberId, err = getMemberId(ctx, r, userId)
+		memberId, err = findMemberIDByUserID(ctx, r.client, r.accountId, userId)
 		if err != nil {
 			return nil, err
 		}
@@ -358,37 +358,6 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 	return &accountMemberListResponse.Result, nil
 }
 
-func getMemberId(ctx context.Context, r *roleResourceType, userId string) (string, error) {
-	processedMemberCount := 0
-	perPage := 50
-	page := 1
-
-	for {
-		memberUsers, resp, err := r.client.AccountMembers(ctx, r.accountId, cloudflare.PaginationOptions{
-			Page:    page,
-			PerPage: perPage,
-		})
-		if err != nil {
-			return "", wrapError(err, "failed to list user members")
-		}
-
-		for _, memberUser := range memberUsers {
-			if memberUser.User.ID == userId {
-				return memberUser.ID, nil
-			}
-		}
-
-		processedMemberCount += perPage
-		if processedMemberCount >= resp.Total {
-			break
-		}
-
-		page++
-	}
-
-	return "", fmt.Errorf("cloudflare-connector: account member not found for user with id: %s", userId)
-}
-
 func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
 	l := ctxzap.Extract(ctx)
 	entitlement := grant.Entitlement
@@ -412,7 +381,7 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 
 	memberId, found := rs.GetProfileStringValue(userTrait.GetProfile(), memberIdProfileKey)
 	if !found || memberId == "" {
-		memberId, err = getMemberId(ctx, r, userId)
+		memberId, err = findMemberIDByUserID(ctx, r.client, r.accountId, userId)
 		if err != nil {
 			return nil, err
 		}

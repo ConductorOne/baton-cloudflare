@@ -67,13 +67,18 @@
               },
               {
                 "permission": "Account Settings: Read"
+              },
+              {
+                "permission": "Account Settings: Edit"
               }
             ]
           }
         ]
       },
       "capabilities": [
-        "CAPABILITY_SYNC"
+        "CAPABILITY_SYNC",
+        "CAPABILITY_ACCOUNT_PROVISIONING",
+        "CAPABILITY_RESOURCE_DELETE"
       ],
       "permissions": {
         "permissions": [
@@ -82,6 +87,9 @@
           },
           {
             "permission": "Account Settings: Read"
+          },
+          {
+            "permission": "Account Settings: Edit"
           }
         ]
       }
@@ -89,7 +97,16 @@
   ],
   "connectorCapabilities": [
     "CAPABILITY_PROVISION",
-    "CAPABILITY_SYNC"
+    "CAPABILITY_SYNC",
+    "CAPABILITY_ACCOUNT_PROVISIONING",
+    "CAPABILITY_RESOURCE_DELETE"
   ],
-  "credentialDetails": {}
+  "credentialDetails": {
+    "capabilityAccountProvisioning": {
+      "supportedCredentialOptions": [
+        "CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD"
+      ],
+      "preferredCredentialOption": "CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD"
+    }
+  }
 }

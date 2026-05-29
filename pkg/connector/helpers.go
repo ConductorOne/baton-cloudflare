@@ -1,10 +1,12 @@
 package connector
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 
+	"github.com/cloudflare/cloudflare-go"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
@@ -14,6 +16,8 @@ const (
 	MembershipEntitlementIDTemplate = "membership:%s"
 	V1GrantIDTemplate               = "grant:%s:%s"
 )
+
+var errMemberNotFound = errors.New("baton-cloudflare: account member not found")
 
 type CloudflareError struct {
 	ErrorMessage     string                   `json:"error"`
@@ -90,4 +94,92 @@ func getError(err error) error {
 
 func WithAuthorizationBearerHeader(token string) uhttp.RequestOption {
 	return uhttp.WithHeader("Authorization", "Bearer "+token)
+}
+
+// findMemberIDByUserID looks up the Cloudflare membership ID for a given user UUID.
+// The resource ID stored in baton is the user UUID (member.User.ID), but Cloudflare's
+// delete and update APIs require the membership ID (member.ID).
+func findMemberIDByUserID(ctx context.Context, client *cloudflare.API, accountID, userID string) (string, error) {
+	perPage := 50
+	page := 1
+	processed := 0
+
+	for {
+		members, resp, err := client.AccountMembers(ctx, accountID, cloudflare.PaginationOptions{
+			Page:    page,
+			PerPage: perPage,
+		})
+		if err != nil {
+			return "", fmt.Errorf("baton-cloudflare: failed to list account members: %w", err)
+		}
+
+		for _, m := range members {
+			if m.User.ID == userID {
+				return m.ID, nil
+			}
+		}
+
+		processed += len(members)
+		if processed >= resp.Total {
+			break
+		}
+		page++
+	}
+
+	return "", fmt.Errorf("%w for user ID %s", errMemberNotFound, userID)
+}
+
+// getAccountInfo extracts the primary email and optional first/last name from AccountInfo.
+// Email comes from the C1 user's primary email; name fields come from the provisioning profile.
+func getAccountInfo(accountInfo *v2.AccountInfo) (string, string, string, error) {
+	email := ""
+	for _, e := range accountInfo.GetEmails() {
+		if e.GetIsPrimary() {
+			email = e.GetAddress()
+			break
+		}
+	}
+	if email == "" && len(accountInfo.GetEmails()) > 0 {
+		email = accountInfo.GetEmails()[0].GetAddress()
+	}
+	if email == "" {
+		return "", "", "", fmt.Errorf("baton-cloudflare: primary email is required to invite an account member")
+	}
+
+	profile := map[string]interface{}{}
+	if accountInfo.GetProfile() != nil {
+		profile = accountInfo.GetProfile().AsMap()
+	}
+	firstName, _ := profile["first_name"].(string)
+	lastName, _ := profile["last_name"].(string)
+	return email, firstName, lastName, nil
+}
+
+// getRoleIDsFromProfile extracts a list of Cloudflare role IDs from the account info profile.
+// The profile field "roles" may arrive as []interface{} (StringListField) or a single string.
+func getRoleIDsFromProfile(accountInfo *v2.AccountInfo) []string {
+	profile := accountInfo.GetProfile()
+	if profile == nil {
+		return nil
+	}
+	profileMap := profile.AsMap()
+	rolesVal, ok := profileMap["roles"]
+	if !ok {
+		return nil
+	}
+
+	var roleIDs []string
+	switch v := rolesVal.(type) {
+	case []interface{}:
+		for _, r := range v {
+			if roleID, ok := r.(string); ok && roleID != "" {
+				roleIDs = append(roleIDs, roleID)
+			}
+		}
+	case string:
+		if v != "" {
+			roleIDs = append(roleIDs, v)
+		}
+	}
+	return roleIDs
 }

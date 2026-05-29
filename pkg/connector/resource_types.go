@@ -14,6 +14,7 @@ var (
 		Annotations: v1AnnotationsWithPermissions("user", capabilityPermissions(
 			"Access: Organizations, Identity Providers and Groups:Read",
 			"Account Settings: Read",
+			"Account Settings: Edit",
 		)),
 	}
 	resourceTypeRole = &v2.ResourceType{

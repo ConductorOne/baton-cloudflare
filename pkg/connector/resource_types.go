@@ -29,4 +29,14 @@ var (
 			"Account Settings: Edit",
 		)),
 	}
+	resourceTypeAPIToken = &v2.ResourceType{
+		Id:          "api_token",
+		DisplayName: "API Token",
+		Traits: []v2.ResourceType_Trait{
+			v2.ResourceType_TRAIT_SECRET,
+		},
+		Annotations: v1AnnotationsWithPermissions("api_token", capabilityPermissions(
+			"Account API Tokens:Read",
+		)),
+	}
 )

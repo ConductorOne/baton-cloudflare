@@ -132,5 +132,6 @@ func (c *Cloudflare) ResourceSyncers(ctx context.Context) []connectorbuilder.Res
 	return []connectorbuilder.ResourceSyncerV2{
 		userBuilder(c.client, c.accountId),
 		roleBuilder(c.client, c.accountId, c.emailId),
+		apiTokenBuilder(c.client, c.accountId, c.emailId),
 	}
 }

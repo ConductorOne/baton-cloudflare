@@ -4,17 +4,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
 
 	"github.com/cloudflare/cloudflare-go"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
+	"github.com/conductorone/baton-sdk/pkg/uhttp"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type InvitationResourceType struct {
 	resourceType *v2.ResourceType
 	client       *cloudflare.API
 	accountId    string
+	emailId      string
 }
 
 func (o *InvitationResourceType) ResourceType(_ context.Context) *v2.ResourceType {
@@ -23,14 +31,15 @@ func (o *InvitationResourceType) ResourceType(_ context.Context) *v2.ResourceTyp
 
 func invitationResource(member cloudflare.AccountMember) (*v2.Resource, error) {
 	email := member.User.Email
+	status := cases.Title(language.English).String(member.Status)
 	profile := map[string]interface{}{
 		"email":  email,
-		"status": member.Status,
+		"status": status,
 	}
 
 	userTraits := []rs.UserTraitOption{
 		rs.WithUserProfile(profile),
-		rs.WithStatus(v2.UserTrait_Status_STATUS_UNSPECIFIED),
+		rs.WithDetailedStatus(v2.UserTrait_Status_STATUS_ENABLED, status),
 		rs.WithUserLogin(email),
 		rs.WithEmail(email, true),
 	}
@@ -45,25 +54,71 @@ func invitationResource(member cloudflare.AccountMember) (*v2.Resource, error) {
 	return resource, nil
 }
 
+// listPendingMembers fetches only pending account members from the Cloudflare API using a
+// raw HTTP call with ?status=pending.
+//
+// The cloudflare-go SDK's AccountMembers() only accepts PaginationOptions (page + per_page)
+// and does not expose the status query parameter supported by the REST API
+// (GET /accounts/{id}/members?status=pending|accepted|rejected).
+// Until the SDK adds a dedicated filter params struct we call the endpoint directly so that
+// only pending invitations are returned, avoiding a full member scan on every sync.
+func (o *InvitationResourceType) listPendingMembers(ctx context.Context, page int) ([]cloudflare.AccountMember, cloudflare.ResultInfo, error) {
+	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
+	if err != nil {
+		return nil, cloudflare.ResultInfo{}, err
+	}
+
+	baseClient := uhttp.NewBaseHttpClient(httpClient)
+
+	params := url.Values{}
+	params.Set("status", "pending")
+	params.Set("page", strconv.Itoa(page))
+	endpointURL := fmt.Sprintf("%s/accounts/%s/members?%s", o.client.BaseURL, o.accountId, params.Encode())
+
+	uri, err := url.Parse(endpointURL)
+	if err != nil {
+		return nil, cloudflare.ResultInfo{}, err
+	}
+
+	opts := []uhttp.RequestOption{
+		uhttp.WithAcceptJSONHeader(),
+		uhttp.WithBearerToken(o.client.APIToken),
+	}
+	if o.emailId != "" {
+		opts = append(opts, uhttp.WithHeader(XAuthEmailHeaderKey, o.emailId))
+	}
+	if o.client.APIKey != "" {
+		opts = append(opts, uhttp.WithHeader(XAuthKeyHeaderKey, o.client.APIKey))
+	}
+
+	req, err := baseClient.NewRequest(ctx, http.MethodGet, uri, opts...)
+	if err != nil {
+		return nil, cloudflare.ResultInfo{}, err
+	}
+
+	var response cloudflare.AccountMembersListResponse
+	_, err = baseClient.Do(req, uhttp.WithJSONResponse(&response))
+	if err != nil {
+		return nil, cloudflare.ResultInfo{}, fmt.Errorf("baton-cloudflare: failed to list pending invitations: %w", err)
+	}
+
+	return response.Result, response.ResultInfo, nil
+}
+
 func (o *InvitationResourceType) List(ctx context.Context, _ *v2.ResourceId, opts rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {
 	page, err := convertPageToken(opts.PageToken.Token)
 	if err != nil {
 		return nil, nil, fmt.Errorf("baton-cloudflare: invalid page token error")
 	}
 
-	pageOpts := cloudflare.PaginationOptions{Page: page}
-	members, resp, err := o.client.AccountMembers(ctx, o.accountId, pageOpts)
+	members, resultInfo, err := o.listPendingMembers(ctx, page)
 	if err != nil {
-		return nil, nil, fmt.Errorf("baton-cloudflare: could not retrieve account members: %w", err)
+		return nil, nil, err
 	}
 
-	nextPage := convertNextPageToken(resp.Page, len(members))
-	rv := make([]*v2.Resource, 0)
+	nextPage := convertNextPageToken(resultInfo.Page, len(members))
+	rv := make([]*v2.Resource, 0, len(members))
 	for _, member := range members {
-		// Only capture pending invitations — accepted members are handled by the user resource type.
-		if member.User.ID != "" {
-			continue
-		}
 		resource, err := invitationResource(member)
 		if err != nil {
 			return nil, nil, err
@@ -101,10 +156,11 @@ func (o *InvitationResourceType) Delete(ctx context.Context, resourceId *v2.Reso
 	return nil, nil
 }
 
-func invitationBuilder(client *cloudflare.API, accountId string) *InvitationResourceType {
+func invitationBuilder(client *cloudflare.API, accountId, emailId string) *InvitationResourceType {
 	return &InvitationResourceType{
 		resourceType: resourceTypeInvitation,
 		client:       client,
 		accountId:    accountId,
+		emailId:      emailId,
 	}
 }

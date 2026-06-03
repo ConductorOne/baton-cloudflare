@@ -23,7 +23,7 @@ var (
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_USER,
 		},
-		Annotations: v1AnnotationsForResourceType("invitation"),
+		Annotations: v1AnnotationsSkipEntitlementsAndGrants("invitation"),
 	}
 	resourceTypeRole = &v2.ResourceType{
 		Id:          "role",

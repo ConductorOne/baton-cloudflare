@@ -55,6 +55,12 @@ func v1AnnotationsWithPermissions(resourceTypeID string, perms *v2.CapabilityPer
 	return annos
 }
 
+func v1AnnotationsSkipEntitlementsAndGrants(resourceTypeID string) annotations.Annotations {
+	annos := v1AnnotationsForResourceType(resourceTypeID)
+	annos.Update(&v2.SkipEntitlementsAndGrants{})
+	return annos
+}
+
 func V1MembershipEntitlementID(resourceID string) string {
 	return fmt.Sprintf(MembershipEntitlementIDTemplate, resourceID)
 }

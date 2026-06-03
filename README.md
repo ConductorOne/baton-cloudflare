@@ -38,7 +38,8 @@ baton resources
 `baton-cloudflare` will pull down information about the following cloudflare resources:
 - Users
   - Users supervisors
-  - roles
+  - Roles
+- Invitations — pending account invitations are synced as a separate resource type. Users who have been invited but have not yet accepted appear as `Invitation` resources with a `Pending` status. Once the invitation is accepted, the user will appear as a regular `User` resource on the next sync.
 
 # Contributing, Support and Issues
 

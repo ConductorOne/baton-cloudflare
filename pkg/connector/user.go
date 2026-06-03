@@ -72,7 +72,7 @@ func (o *UserResourceType) List(ctx context.Context, _ *v2.ResourceId, opts rs.S
 	rv := make([]*v2.Resource, 0, len(users))
 	for _, user := range users {
 		// Pending invitations have no User.ID yet; they are listed by the invitation resource type.
-		if user.User.ID == "" {
+		if user.Status == userStatusPending || user.User.ID == "" {
 			continue
 		}
 
@@ -140,16 +140,10 @@ func (o *UserResourceType) CreateAccount(
 		member.User.LastName = lastName
 	}
 
-	// When the invited address has no existing Cloudflare account, User.ID is empty until accepted.
-	// Return an invitation resource in that case so C1 gets a valid resource back.
 	var resource *v2.Resource
-	if member.User.ID == "" {
-		resource, err = invitationResource(member)
-	} else {
-		resource, err = userResource(member)
-	}
+	resource, err = invitationResource(member)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("baton-cloudflare: failed to build resource after invite: %w", err)
+		return nil, nil, nil, fmt.Errorf("baton-cloudflare: failed to build invitation resource after invite: %w", err)
 	}
 
 	return &v2.CreateAccountResponse_ActionRequiredResult{

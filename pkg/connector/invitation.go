@@ -18,6 +18,8 @@ import (
 	"golang.org/x/text/language"
 )
 
+const userStatusPending = "pending"
+
 type InvitationResourceType struct {
 	resourceType *v2.ResourceType
 	client       *cloudflare.API
@@ -71,7 +73,7 @@ func (o *InvitationResourceType) listPendingMembers(ctx context.Context, page in
 	baseClient := uhttp.NewBaseHttpClient(httpClient)
 
 	params := url.Values{}
-	params.Set("status", "pending")
+	params.Set("status", userStatusPending)
 	params.Set("page", strconv.Itoa(page))
 	endpointURL := fmt.Sprintf("%s/accounts/%s/members?%s", o.client.BaseURL, o.accountId, params.Encode())
 

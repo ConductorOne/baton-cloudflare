@@ -15,7 +15,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 )
 
-func New(ctx context.Context, cc *cfg.Cloudflare, opts *cli.ConnectorOpts) (connectorbuilder.ConnectorBuilderV2, []connectorbuilder.Opt, error) {
+func New(ctx context.Context, cc *cfg.Cloudflare, _ *cli.ConnectorOpts) (connectorbuilder.ConnectorBuilderV2, []connectorbuilder.Opt, error) {
 	var (
 		client    *cloudflare.API
 		apiKey    = cc.ApiKey

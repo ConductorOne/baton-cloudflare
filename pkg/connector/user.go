@@ -59,18 +59,23 @@ func userResource(member cloudflare.AccountMember) (*v2.Resource, error) {
 func (o *UserResourceType) List(ctx context.Context, _ *v2.ResourceId, opts rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {
 	page, err := convertPageToken(opts.PageToken.Token)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Cloudflare: invalid page token error")
+		return nil, nil, fmt.Errorf("baton-cloudflare: invalid page token error")
 	}
 
 	pageOpts := cloudflare.PaginationOptions{Page: page}
 	users, resp, err := o.client.AccountMembers(ctx, o.accountId, pageOpts)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cloudflare: could not retrieve users: %w", err)
+		return nil, nil, fmt.Errorf("baton-cloudflare: could not retrieve users: %w", err)
 	}
 
 	nextPage := convertNextPageToken(resp.Page, len(users))
 	rv := make([]*v2.Resource, 0, len(users))
 	for _, user := range users {
+		// Pending invitations have no User.ID yet; they are listed by the invitation resource type.
+		if user.Status == userStatusPending || user.User.ID == "" {
+			continue
+		}
+
 		userResource, err := userResource(user)
 		if err != nil {
 			return nil, nil, err
@@ -135,9 +140,10 @@ func (o *UserResourceType) CreateAccount(
 		member.User.LastName = lastName
 	}
 
-	resource, err := userResource(member)
+	var resource *v2.Resource
+	resource, err = invitationResource(member)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("baton-cloudflare: failed to build user resource after invite: %w", err)
+		return nil, nil, nil, fmt.Errorf("baton-cloudflare: failed to build invitation resource after invite: %w", err)
 	}
 
 	return &v2.CreateAccountResponse_ActionRequiredResult{

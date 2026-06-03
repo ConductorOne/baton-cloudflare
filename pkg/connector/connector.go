@@ -15,7 +15,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 )
 
-func New(ctx context.Context, cc *cfg.Cloudflare, opts *cli.ConnectorOpts) (connectorbuilder.ConnectorBuilderV2, []connectorbuilder.Opt, error) {
+func New(ctx context.Context, cc *cfg.Cloudflare, _ *cli.ConnectorOpts) (connectorbuilder.ConnectorBuilderV2, []connectorbuilder.Opt, error) {
 	var (
 		client    *cloudflare.API
 		apiKey    = cc.ApiKey
@@ -112,25 +112,26 @@ func (c *Cloudflare) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error
 func (c *Cloudflare) Validate(ctx context.Context) (annotations.Annotations, error) {
 	if c.accountId != "" {
 		if c.client == nil {
-			return nil, fmt.Errorf("Cloudflare: client not configured. API key/email or token not provided")
+			return nil, fmt.Errorf("baton-cloudflare: client not configured, API key/email or token not provided")
 		}
 
 		_, _, err := c.client.Account(ctx, c.accountId)
 		if err != nil {
-			return nil, fmt.Errorf("Cloudflare: failed to validate API keys: %w", err)
+			return nil, fmt.Errorf("baton-cloudflare: failed to validate API keys: %w", err)
 		}
 	}
 
 	return nil, nil
 }
 
-func (c *Cloudflare) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.ReadCloser, error) {
+func (c *Cloudflare) Asset(_ context.Context, _ *v2.AssetRef) (string, io.ReadCloser, error) {
 	return "", nil, nil
 }
 
-func (c *Cloudflare) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncerV2 {
+func (c *Cloudflare) ResourceSyncers(_ context.Context) []connectorbuilder.ResourceSyncerV2 {
 	return []connectorbuilder.ResourceSyncerV2{
 		userBuilder(c.client, c.accountId),
+		invitationBuilder(c.client, c.accountId, c.emailId),
 		roleBuilder(c.client, c.accountId, c.emailId),
 	}
 }

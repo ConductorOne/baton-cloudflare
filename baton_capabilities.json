@@ -3,6 +3,29 @@
   "resourceTypeCapabilities": [
     {
       "resourceType": {
+        "id": "invitation",
+        "displayName": "Invitation",
+        "traits": [
+          "TRAIT_USER"
+        ],
+        "annotations": [
+          {
+            "@type": "type.googleapis.com/c1.connector.v2.V1Identifier",
+            "id": "invitation"
+          },
+          {
+            "@type": "type.googleapis.com/c1.connector.v2.SkipEntitlementsAndGrants"
+          }
+        ]
+      },
+      "capabilities": [
+        "CAPABILITY_SYNC",
+        "CAPABILITY_RESOURCE_DELETE"
+      ],
+      "permissions": {}
+    },
+    {
+      "resourceType": {
         "id": "role",
         "displayName": "Role",
         "traits": [

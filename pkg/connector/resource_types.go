@@ -17,6 +17,14 @@ var (
 			"Account Settings: Edit",
 		)),
 	}
+	resourceTypeInvitation = &v2.ResourceType{
+		Id:          "invitation",
+		DisplayName: "Invitation",
+		Traits: []v2.ResourceType_Trait{
+			v2.ResourceType_TRAIT_USER,
+		},
+		Annotations: v1AnnotationsForResourceType("invitation"),
+	}
 	resourceTypeRole = &v2.ResourceType{
 		Id:          "role",
 		DisplayName: "Role",

@@ -124,13 +124,14 @@ func (c *Cloudflare) Validate(ctx context.Context) (annotations.Annotations, err
 	return nil, nil
 }
 
-func (c *Cloudflare) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.ReadCloser, error) {
+func (c *Cloudflare) Asset(_ context.Context, _ *v2.AssetRef) (string, io.ReadCloser, error) {
 	return "", nil, nil
 }
 
-func (c *Cloudflare) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncerV2 {
+func (c *Cloudflare) ResourceSyncers(_ context.Context) []connectorbuilder.ResourceSyncerV2 {
 	return []connectorbuilder.ResourceSyncerV2{
 		userBuilder(c.client, c.accountId),
+		invitationBuilder(c.client, c.accountId),
 		roleBuilder(c.client, c.accountId, c.emailId),
 	}
 }

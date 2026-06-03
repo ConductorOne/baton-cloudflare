@@ -112,12 +112,12 @@ func (c *Cloudflare) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error
 func (c *Cloudflare) Validate(ctx context.Context) (annotations.Annotations, error) {
 	if c.accountId != "" {
 		if c.client == nil {
-			return nil, fmt.Errorf("Cloudflare: client not configured. API key/email or token not provided")
+			return nil, fmt.Errorf("baton-cloudflare: client not configured, API key/email or token not provided")
 		}
 
 		_, _, err := c.client.Account(ctx, c.accountId)
 		if err != nil {
-			return nil, fmt.Errorf("Cloudflare: failed to validate API keys: %w", err)
+			return nil, fmt.Errorf("baton-cloudflare: failed to validate API keys: %w", err)
 		}
 	}
 

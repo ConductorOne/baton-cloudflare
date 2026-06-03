@@ -69,7 +69,7 @@ func roleResource(role cloudflare.AccountRole, resourceTypeRole *v2.ResourceType
 	return ret, nil
 }
 
-func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, opts rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {
+func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, _ rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {
 	// Empty params causes ListAccountRoles to auto paginate and return all account roles
 	params := cloudflare.ListAccountRolesParams{}
 	roles, err := o.client.ListAccountRoles(ctx, cloudflare.AccountIdentifier(o.accountId), params)
@@ -97,7 +97,7 @@ func (o *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, opts rs.S
 	return rv, &rs.SyncOpResults{}, nil
 }
 
-func (r *roleResourceType) Entitlements(ctx context.Context, resource *v2.Resource, opts rs.SyncOpAttrs) ([]*v2.Entitlement, *rs.SyncOpResults, error) {
+func (r *roleResourceType) Entitlements(_ context.Context, resource *v2.Resource, _ rs.SyncOpAttrs) ([]*v2.Entitlement, *rs.SyncOpResults, error) {
 	rv := []*v2.Entitlement{
 		ent.NewAssignmentEntitlement(
 			resource,
@@ -155,7 +155,7 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 
 	resp, err := r.httpClient.Do(req, uhttp.WithJSONResponse(&accountMemberListResponse))
 	if err != nil {
-		return nil, fmt.Errorf("%s %s", err.Error(), resp.Body)
+		return nil, fmt.Errorf("baton-cloudflare: failed to get account member: %w", err)
 	}
 
 	defer resp.Body.Close()
@@ -166,7 +166,7 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, op
 	var rv []*v2.Grant
 	page, err := convertPageToken(opts.PageToken.Token)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Cloudflare: invalid page token error")
+		return nil, nil, fmt.Errorf("baton-cloudflare: invalid page token error")
 	}
 
 	pageOpts := cloudflare.PaginationOptions{Page: page}
@@ -178,6 +178,11 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, op
 	roleId := resource.Id.Resource
 	nextPage := convertNextPageToken(resp.Page, len(users))
 	for _, user := range users {
+		// Pending invitations have no User.ID yet.
+		if user.User.ID == "" {
+			continue
+		}
+
 		userPos := slices.IndexFunc(user.Roles, func(r cloudflare.AccountRole) bool {
 			return r.ID == roleId
 		})
@@ -242,7 +247,7 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 
 	account, err := r.GetAccountMember(ctx, r.accountId, memberId)
 	if err != nil {
-		return nil, fmt.Errorf("error: %s", err.Error())
+		return nil, fmt.Errorf("baton-cloudflare: failed to get account member: %w", err)
 	}
 
 	roles := []cloudflare.AccountRole{
@@ -364,11 +369,11 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 	principal := grant.Principal
 	if principal.Id.ResourceType != resourceTypeUser.Id {
 		l.Warn(
-			"couldflare-connector: only users can have role membership revoked",
+			"baton-cloudflare: only users can have role membership revoked",
 			zap.String("principal_type", principal.Id.ResourceType),
 			zap.String("principal_id", principal.Id.Resource),
 		)
-		return nil, fmt.Errorf("couldflare-connector: only users can have role membership revoked")
+		return nil, fmt.Errorf("baton-cloudflare: only users can have role membership revoked")
 	}
 
 	userId := principal.Id.Resource

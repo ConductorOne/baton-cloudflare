@@ -97,11 +97,12 @@ func (o *InvitationResourceType) listPendingMembers(ctx context.Context, page in
 	}
 
 	var response cloudflare.AccountMembersListResponse
-	_, err = baseClient.Do(req, uhttp.WithJSONResponse(&response))
+	resp, err := baseClient.Do(req, uhttp.WithJSONResponse(&response))
 	if err != nil {
 		return nil, cloudflare.ResultInfo{}, fmt.Errorf("baton-cloudflare: failed to list pending invitations: %w", err)
 	}
 
+	defer resp.Body.Close()
 	return response.Result, response.ResultInfo, nil
 }
 

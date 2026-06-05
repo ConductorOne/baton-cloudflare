@@ -110,7 +110,10 @@ func (o *apiTokenResourceType) listAccountAPITokens(ctx context.Context, page, p
 		o.httpClient = uhttp.NewBaseHttpClient(httpClient)
 	}
 
-	endpointURL := fmt.Sprintf("%s/accounts/%s/tokens", o.client.BaseURL, o.accountId)
+	endpointURL, err := url.JoinPath(o.client.BaseURL, "accounts", o.accountId, "tokens")
+	if err != nil {
+		return nil, fmt.Errorf("baton-cloudflare: failed to build endpoint url: %w", err)
+	}
 	uri, err := url.Parse(endpointURL)
 	if err != nil {
 		return nil, fmt.Errorf("baton-cloudflare: failed to parse endpoint url: %w", err)

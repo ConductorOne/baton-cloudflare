@@ -68,7 +68,7 @@ func (o *apiTokenResourceType) List(ctx context.Context, _ *v2.ResourceId, opts 
 
 	page, err := convertPageToken(opts.PageToken.Token)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cloudflare: invalid page token error")
+		return nil, nil, fmt.Errorf("baton-cloudflare: invalid page token: %w", err)
 	}
 
 	resp, err := o.listAccountAPITokens(ctx, page, apiTokensPerPage)
@@ -107,14 +107,14 @@ func (o *apiTokenResourceType) Grants(_ context.Context, _ *v2.Resource, _ rs.Sy
 func (o *apiTokenResourceType) listAccountAPITokens(ctx context.Context, page, perPage int) (*accountAPITokenListResponse, error) {
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("baton-cloudflare: failed to create http client: %w", err)
 	}
 	o.httpClient = uhttp.NewBaseHttpClient(httpClient)
 
 	endpointURL := fmt.Sprintf("%s/accounts/%s/tokens", o.client.BaseURL, o.accountId)
 	uri, err := url.Parse(endpointURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("baton-cloudflare: failed to parse endpoint url: %w", err)
 	}
 	q := uri.Query()
 	q.Set("page", strconv.Itoa(page))
@@ -136,13 +136,13 @@ func (o *apiTokenResourceType) listAccountAPITokens(ctx context.Context, page, p
 
 	req, err := o.httpClient.NewRequest(ctx, http.MethodGet, uri, reqOpts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("baton-cloudflare: failed to create request: %w", err)
 	}
 
 	var result accountAPITokenListResponse
 	resp, err := o.httpClient.Do(req, uhttp.WithJSONResponse(&result))
 	if err != nil {
-		return nil, fmt.Errorf("cloudflare: failed to list account API tokens: %w", err)
+		return nil, fmt.Errorf("baton-cloudflare: failed to list account API tokens: %w", err)
 	}
 	defer resp.Body.Close()
 

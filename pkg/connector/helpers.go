@@ -10,6 +10,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -41,17 +42,11 @@ func capabilityPermissions(perms ...string) *v2.CapabilityPermissions {
 	return cp
 }
 
-func v1AnnotationsForResourceType(resourceTypeID string) annotations.Annotations {
+func buildAnnotations(msgs ...proto.Message) annotations.Annotations {
 	annos := annotations.Annotations{}
-	annos.Update(&v2.V1Identifier{
-		Id: resourceTypeID,
-	})
-	return annos
-}
-
-func v1AnnotationsWithPermissions(resourceTypeID string, perms *v2.CapabilityPermissions) annotations.Annotations {
-	annos := v1AnnotationsForResourceType(resourceTypeID)
-	annos.Update(perms)
+	for _, msg := range msgs {
+		annos.Update(msg)
+	}
 	return annos
 }
 

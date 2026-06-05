@@ -11,11 +11,15 @@ var (
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_USER,
 		},
-		Annotations: v1AnnotationsWithPermissions("user", capabilityPermissions(
-			"Access: Organizations, Identity Providers and Groups:Read",
-			"Account Settings: Read",
-			"Account Settings: Edit",
-		)),
+		Annotations: buildAnnotations(
+			&v2.V1Identifier{Id: "user"},
+			capabilityPermissions(
+				"Access: Organizations, Identity Providers and Groups:Read",
+				"Account Settings: Read",
+				"Account Settings: Edit",
+			),
+			&v2.SkipEntitlementsAndGrants{},
+		),
 	}
 	resourceTypeRole = &v2.ResourceType{
 		Id:          "role",
@@ -23,11 +27,14 @@ var (
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_ROLE,
 		},
-		Annotations: v1AnnotationsWithPermissions("role", capabilityPermissions(
-			"Access: Organizations, Identity Providers and Groups:Read",
-			"Account Settings: Read",
-			"Account Settings: Edit",
-		)),
+		Annotations: buildAnnotations(
+			&v2.V1Identifier{Id: "role"},
+			capabilityPermissions(
+				"Access: Organizations, Identity Providers and Groups:Read",
+				"Account Settings: Read",
+				"Account Settings: Edit",
+			),
+		),
 	}
 	resourceTypeAPIToken = &v2.ResourceType{
 		Id:          "api_token",
@@ -35,8 +42,12 @@ var (
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_SECRET,
 		},
-		Annotations: v1AnnotationsWithPermissions("api_token", capabilityPermissions(
-			"Account API Tokens:Read",
-		)),
+		Annotations: buildAnnotations(
+			&v2.V1Identifier{Id: "api_token"},
+			capabilityPermissions(
+				"Account API Tokens:Read",
+			),
+			&v2.SkipEntitlementsAndGrants{},
+		),
 	}
 )

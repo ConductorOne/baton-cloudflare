@@ -2,7 +2,7 @@
 
 # `baton-cloudflare` [![Go Reference](https://pkg.go.dev/badge/github.com/conductorone/baton-cloudflare.svg)](https://pkg.go.dev/github.com/conductorone/baton-cloudflare) ![ci](https://github.com/conductorone/baton-cloudflare/actions/workflows/ci.yaml/badge.svg) ![verify](https://github.com/conductorone/baton-cloudflare/actions/workflows/verify.yaml/badge.svg)
 
-`baton-cloudflare` is a connector for cloudflare built using the [Baton SDK](https://github.com/conductorone/baton-sdk). It communicates with the cloudflare API to sync data about users and roles.
+`baton-cloudflare` is a connector for cloudflare built using the [Baton SDK](https://github.com/conductorone/baton-sdk). It communicates with the cloudflare API to sync data about users, roles, and account API tokens.
 
 Check out [Baton](https://github.com/conductorone/baton) to learn more the project in general.
 
@@ -37,8 +37,8 @@ baton resources
 
 `baton-cloudflare` will pull down information about the following cloudflare resources:
 - Users
-  - Users supervisors
-  - roles
+- Roles
+- Account API Tokens
 
 # Contributing, Support and Issues
 

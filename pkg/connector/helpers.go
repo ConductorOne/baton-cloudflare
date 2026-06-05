@@ -50,6 +50,12 @@ func buildAnnotations(msgs ...proto.Message) annotations.Annotations {
 	return annos
 }
 
+func v1AnnotationsSkipEntitlementsAndGrants(resourceTypeID string) annotations.Annotations {
+	annos := v1AnnotationsForResourceType(resourceTypeID)
+	annos.Update(&v2.SkipEntitlementsAndGrants{})
+	return annos
+}
+
 func V1MembershipEntitlementID(resourceID string) string {
 	return fmt.Sprintf(MembershipEntitlementIDTemplate, resourceID)
 }
@@ -81,7 +87,7 @@ func getError(err error) error {
 	}
 
 	if errors.As(err, &bitbucketErr) {
-		return fmt.Errorf("%s %s", bitbucketErr.Error(), bitbucketErr.ErrorSummary)
+		return fmt.Errorf("baton-cloudflare: %s: %s", bitbucketErr.Error(), bitbucketErr.ErrorSummary)
 	}
 
 	return err
@@ -121,7 +127,7 @@ func findMemberIDByUserID(ctx context.Context, client *cloudflare.API, accountID
 		page++
 	}
 
-	return "", fmt.Errorf("%w for user ID %s", errMemberNotFound, userID)
+	return "", fmt.Errorf("baton-cloudflare: %w for user ID %s", errMemberNotFound, userID)
 }
 
 // getAccountInfo extracts the primary email and optional first/last name from AccountInfo.

@@ -180,6 +180,11 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, op
 	roleId := resource.Id.Resource
 	nextPage := convertNextPageToken(resp.Page, len(users))
 	for _, user := range users {
+		// Pending invitations have no User.ID yet.
+		if user.User.ID == "" {
+			continue
+		}
+
 		userPos := slices.IndexFunc(user.Roles, func(r cloudflare.AccountRole) bool {
 			return r.ID == roleId
 		})

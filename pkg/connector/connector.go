@@ -131,6 +131,7 @@ func (c *Cloudflare) Asset(_ context.Context, _ *v2.AssetRef) (string, io.ReadCl
 func (c *Cloudflare) ResourceSyncers(_ context.Context) []connectorbuilder.ResourceSyncerV2 {
 	return []connectorbuilder.ResourceSyncerV2{
 		userBuilder(c.client, c.accountId),
+		invitationBuilder(c.client, c.accountId, c.emailId),
 		roleBuilder(c.client, c.accountId, c.emailId),
 		apiTokenBuilder(c.client, c.accountId, c.emailId),
 	}

@@ -85,10 +85,7 @@ func (o *apiTokenResourceType) List(ctx context.Context, _ *v2.ResourceId, opts 
 		rv = append(rv, tokenResource)
 	}
 
-	nextPage := ""
-	if resp.ResultInfo.PerPage > 0 && resp.ResultInfo.Page*resp.ResultInfo.PerPage < resp.ResultInfo.Total {
-		nextPage = strconv.Itoa(page + 1)
-	}
+	nextPage := convertNextPageToken(resp.ResultInfo.Page, len(resp.Result))
 
 	return rv, &rs.SyncOpResults{NextPageToken: nextPage}, nil
 }
@@ -105,11 +102,13 @@ func (o *apiTokenResourceType) Grants(_ context.Context, _ *v2.Resource, _ rs.Sy
 // APITokens helper only covers /user/tokens, so account-owned tokens are fetched
 // directly, reusing the same auth headers the rest of the connector relies on.
 func (o *apiTokenResourceType) listAccountAPITokens(ctx context.Context, page, perPage int) (*accountAPITokenListResponse, error) {
-	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
-	if err != nil {
-		return nil, fmt.Errorf("baton-cloudflare: failed to create http client: %w", err)
+	if o.httpClient == nil {
+		httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
+		if err != nil {
+			return nil, fmt.Errorf("baton-cloudflare: failed to create http client: %w", err)
+		}
+		o.httpClient = uhttp.NewBaseHttpClient(httpClient)
 	}
-	o.httpClient = uhttp.NewBaseHttpClient(httpClient)
 
 	endpointURL := fmt.Sprintf("%s/accounts/%s/tokens", o.client.BaseURL, o.accountId)
 	uri, err := url.Parse(endpointURL)
@@ -145,6 +144,13 @@ func (o *apiTokenResourceType) listAccountAPITokens(ctx context.Context, page, p
 		return nil, fmt.Errorf("baton-cloudflare: failed to list account API tokens: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if !result.Success {
+		if len(result.Errors) > 0 {
+			return nil, fmt.Errorf("baton-cloudflare: list account API tokens failed: %s (code %d)", result.Errors[0].Message, result.Errors[0].Code)
+		}
+		return nil, fmt.Errorf("baton-cloudflare: list account API tokens failed: unknown error")
+	}
 
 	return &result, nil
 }

@@ -136,7 +136,9 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 
 	opts := []uhttp.RequestOption{
 		uhttp.WithAcceptJSONHeader(),
-		uhttp.WithBearerToken(r.client.APIToken),
+	}
+	if r.client.APIToken != "" {
+		opts = append(opts, uhttp.WithBearerToken(r.client.APIToken))
 	}
 	if r.emailId != "" {
 		opts = append(opts, uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId))
@@ -316,7 +318,9 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 	opts := []uhttp.RequestOption{
 		uhttp.WithJSONBody(body),
 		uhttp.WithAcceptJSONHeader(),
-		uhttp.WithBearerToken(r.client.APIToken),
+	}
+	if r.client.APIToken != "" {
+		opts = append(opts, uhttp.WithBearerToken(r.client.APIToken))
 	}
 	if r.emailId != "" {
 		opts = append(opts, uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId))

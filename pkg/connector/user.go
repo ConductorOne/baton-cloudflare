@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/cloudflare/cloudflare-go"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -128,6 +127,11 @@ func (o *UserResourceType) CreateAccount(
 		Status:       "pending",
 	})
 	if err != nil {
+		// 1008: "Account member already exists for email address" (Cloudflare API error code)
+		var reqErr cloudflare.RequestError
+		if errors.As(err, &reqErr) && reqErr.InternalErrorCodeIs(1008) {
+			return &v2.CreateAccountResponse_AlreadyExistsResult{}, nil, nil, nil
+		}
 		return nil, nil, nil, fmt.Errorf("baton-cloudflare: failed to invite account member: %w", err)
 	}
 

@@ -128,7 +128,7 @@ func (o *UserResourceType) CreateAccount(
 	})
 	if err != nil {
 		// 1008: "Account member already exists for email address" (Cloudflare API error code)
-		var reqErr cloudflare.RequestError
+		var reqErr *cloudflare.RequestError
 		if errors.As(err, &reqErr) && reqErr.InternalErrorCodeIs(1008) {
 			return &v2.CreateAccountResponse_AlreadyExistsResult{}, nil, nil, nil
 		}

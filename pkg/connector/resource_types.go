@@ -54,7 +54,6 @@ var (
 			v2.ResourceType_TRAIT_SECRET,
 		},
 		Annotations: buildAnnotations(
-			&v2.V1Identifier{Id: "api_token"},
 			capabilityPermissions(
 				"Account API Tokens:Read",
 			),

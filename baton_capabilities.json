@@ -10,10 +10,6 @@
         ],
         "annotations": [
           {
-            "@type": "type.googleapis.com/c1.connector.v2.V1Identifier",
-            "id": "api_token"
-          },
-          {
             "@type": "type.googleapis.com/c1.connector.v2.CapabilityPermissions",
             "permissions": [
               {

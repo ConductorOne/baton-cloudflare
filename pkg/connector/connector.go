@@ -112,7 +112,7 @@ func (c *Cloudflare) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error
 func (c *Cloudflare) Validate(ctx context.Context) (annotations.Annotations, error) {
 	if c.accountId != "" {
 		if c.client == nil {
-			return nil, fmt.Errorf("baton-cloudflare: client not configured, API key/email or token not provided")
+			return nil, fmt.Errorf("baton-cloudflare: client not configured. API key/email or token not provided")
 		}
 
 		_, _, err := c.client.Account(ctx, c.accountId)
@@ -133,5 +133,6 @@ func (c *Cloudflare) ResourceSyncers(_ context.Context) []connectorbuilder.Resou
 		userBuilder(c.client, c.accountId),
 		invitationBuilder(c.client, c.accountId, c.emailId),
 		roleBuilder(c.client, c.accountId, c.emailId),
+		apiTokenBuilder(c.client, c.accountId, c.emailId),
 	}
 }

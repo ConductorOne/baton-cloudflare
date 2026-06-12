@@ -136,7 +136,9 @@ func (r *roleResourceType) GetAccountMember(ctx context.Context, accountID strin
 
 	opts := []uhttp.RequestOption{
 		uhttp.WithAcceptJSONHeader(),
-		uhttp.WithBearerToken(r.client.APIToken),
+	}
+	if r.client.APIToken != "" {
+		opts = append(opts, uhttp.WithBearerToken(r.client.APIToken))
 	}
 	if r.emailId != "" {
 		opts = append(opts, uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId))
@@ -247,7 +249,7 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 
 	account, err := r.GetAccountMember(ctx, r.accountId, memberId)
 	if err != nil {
-		return nil, fmt.Errorf("baton-cloudflare: failed to get account member: %w", err)
+		return nil, fmt.Errorf("baton-cloudflare: failed to get account member for grant: %w", err)
 	}
 
 	roles := []cloudflare.AccountRole{
@@ -258,7 +260,7 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 	for _, role := range account.Result.Roles {
 		if role.ID == roleId {
 			l.Warn(
-				"cloudflare-connector: user already has this role",
+				"baton-cloudflare: user already has this role",
 				zap.String("principal_id", principal.Id.String()),
 				zap.String("principal_type", principal.Id.ResourceType),
 			)
@@ -321,7 +323,9 @@ func (r *roleResourceType) UpdateAccountMember(ctx context.Context, accountID, m
 	opts := []uhttp.RequestOption{
 		uhttp.WithJSONBody(body),
 		uhttp.WithAcceptJSONHeader(),
-		uhttp.WithBearerToken(r.client.APIToken),
+	}
+	if r.client.APIToken != "" {
+		opts = append(opts, uhttp.WithBearerToken(r.client.APIToken))
 	}
 	if r.emailId != "" {
 		opts = append(opts, uhttp.WithHeader(XAuthEmailHeaderKey, r.emailId))
@@ -411,7 +415,7 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 	})
 	if index == NF {
 		l.Warn(
-			"cloudflare-connector: user does not have this role",
+			"baton-cloudflare: user does not have this role",
 			zap.String("principal_id", principal.Id.String()),
 			zap.String("principal_type", principal.Id.ResourceType),
 		)

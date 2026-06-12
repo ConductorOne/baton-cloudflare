@@ -3,6 +3,38 @@
   "resourceTypeCapabilities": [
     {
       "resourceType": {
+        "id": "api_token",
+        "displayName": "API Token",
+        "traits": [
+          "TRAIT_SECRET"
+        ],
+        "annotations": [
+          {
+            "@type": "type.googleapis.com/c1.connector.v2.CapabilityPermissions",
+            "permissions": [
+              {
+                "permission": "Account API Tokens:Read"
+              }
+            ]
+          },
+          {
+            "@type": "type.googleapis.com/c1.connector.v2.SkipEntitlementsAndGrants"
+          }
+        ]
+      },
+      "capabilities": [
+        "CAPABILITY_SYNC"
+      ],
+      "permissions": {
+        "permissions": [
+          {
+            "permission": "Account API Tokens:Read"
+          }
+        ]
+      }
+    },
+    {
+      "resourceType": {
         "id": "invitation",
         "displayName": "Invitation",
         "traits": [
@@ -95,6 +127,9 @@
                 "permission": "Account Settings: Edit"
               }
             ]
+          },
+          {
+            "@type": "type.googleapis.com/c1.connector.v2.SkipEntitlementsAndGrants"
           }
         ]
       },

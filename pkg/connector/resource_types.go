@@ -11,11 +11,15 @@ var (
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_USER,
 		},
-		Annotations: v1AnnotationsWithPermissions("user", capabilityPermissions(
-			"Access: Organizations, Identity Providers and Groups:Read",
-			"Account Settings: Read",
-			"Account Settings: Edit",
-		)),
+		Annotations: buildAnnotations(
+			&v2.V1Identifier{Id: "user"},
+			capabilityPermissions(
+				"Access: Organizations, Identity Providers and Groups:Read",
+				"Account Settings: Read",
+				"Account Settings: Edit",
+			),
+			&v2.SkipEntitlementsAndGrants{},
+		),
 	}
 	resourceTypeInvitation = &v2.ResourceType{
 		Id:          "invitation",
@@ -23,7 +27,10 @@ var (
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_USER,
 		},
-		Annotations: v1AnnotationsSkipEntitlementsAndGrants("invitation"),
+		Annotations: buildAnnotations(
+			&v2.V1Identifier{Id: "invitation"},
+			&v2.SkipEntitlementsAndGrants{},
+		),
 	}
 	resourceTypeRole = &v2.ResourceType{
 		Id:          "role",
@@ -31,10 +38,26 @@ var (
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_ROLE,
 		},
-		Annotations: v1AnnotationsWithPermissions("role", capabilityPermissions(
-			"Access: Organizations, Identity Providers and Groups:Read",
-			"Account Settings: Read",
-			"Account Settings: Edit",
-		)),
+		Annotations: buildAnnotations(
+			&v2.V1Identifier{Id: "role"},
+			capabilityPermissions(
+				"Access: Organizations, Identity Providers and Groups:Read",
+				"Account Settings: Read",
+				"Account Settings: Edit",
+			),
+		),
+	}
+	resourceTypeAPIToken = &v2.ResourceType{
+		Id:          "api_token",
+		DisplayName: "API Token",
+		Traits: []v2.ResourceType_Trait{
+			v2.ResourceType_TRAIT_SECRET,
+		},
+		Annotations: buildAnnotations(
+			capabilityPermissions(
+				"Account API Tokens:Read",
+			),
+			&v2.SkipEntitlementsAndGrants{},
+		),
 	}
 )

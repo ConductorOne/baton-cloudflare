@@ -30,6 +30,7 @@ var (
 		Annotations: buildAnnotations(
 			&v2.V1Identifier{Id: "invitation"},
 			&v2.SkipEntitlementsAndGrants{},
+			&v2.SkipSyncAnomalyDetection{},
 		),
 	}
 	resourceTypeRole = &v2.ResourceType{

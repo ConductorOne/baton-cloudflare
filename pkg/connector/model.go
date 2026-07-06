@@ -3,9 +3,10 @@ package connector
 import "github.com/cloudflare/cloudflare-go"
 
 type Cloudflare struct {
-	client    *cloudflare.API
-	accountId string
-	emailId   string
+	client         *cloudflare.API
+	accountId      string
+	emailId        string
+	organizationId string
 }
 
 type Response struct {

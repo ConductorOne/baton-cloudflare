@@ -9,6 +9,7 @@ type Cloudflare struct {
 	AccountId string `mapstructure:"account-id"`
 	EmailId string `mapstructure:"email-id"`
 	BaseUrl string `mapstructure:"base-url"`
+	OrganizationId string `mapstructure:"organization-id"`
 }
 
 func (c *Cloudflare) findFieldByTag(tagValue string) (any, bool) {

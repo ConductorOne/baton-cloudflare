@@ -61,4 +61,11 @@ var (
 			&v2.SkipEntitlementsAndGrants{},
 		),
 	}
+	resourceTypeOrganization = &v2.ResourceType{
+		Id:          "organization",
+		DisplayName: "Organization",
+		Traits: []v2.ResourceType_Trait{
+			v2.ResourceType_TRAIT_GROUP,
+		},
+	}
 )

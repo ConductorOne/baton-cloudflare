@@ -46,11 +46,13 @@ func apiTokenResource(token cloudflare.APIToken) (*v2.Resource, error) {
 		rs.WithSecretType(v2.SecretTrait_CREDENTIAL_TYPE_STATIC_SECRET),
 		rs.WithSecretDetail(apiTokenSecretDetail),
 	}
-	if token.IssuedOn != nil {
-		secretTraitOpts = append(secretTraitOpts, rs.WithSecretCreatedAt(*token.IssuedOn))
-	}
 	if token.ExpiresOn != nil {
 		secretTraitOpts = append(secretTraitOpts, rs.WithSecretExpiresAt(*token.ExpiresOn))
+	}
+
+	resourceOpts := []rs.ResourceOption{}
+	if token.IssuedOn != nil {
+		resourceOpts = append(resourceOpts, rs.WithResourceCreatedAt(*token.IssuedOn))
 	}
 
 	displayName := token.Name
@@ -58,7 +60,7 @@ func apiTokenResource(token cloudflare.APIToken) (*v2.Resource, error) {
 		displayName = token.ID
 	}
 
-	return rs.NewSecretResource(displayName, resourceTypeAPIToken, token.ID, secretTraitOpts)
+	return rs.NewSecretResource(displayName, resourceTypeAPIToken, token.ID, secretTraitOpts, resourceOpts...)
 }
 
 func (o *apiTokenResourceType) List(ctx context.Context, _ *v2.ResourceId, opts rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {

@@ -231,9 +231,10 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 		return nil, fmt.Errorf("baton-cloudflare: only users can be granted role membership")
 	}
 
-	// The member ID is written to the resource-level profile during sync; fall back to
-	// an API lookup for resources synced before the profile moved off the user trait.
-	memberId, found := rs.GetProfileStringValue(principal.GetProfile(), memberIdProfileKey)
+	// The member ID is written to the resource-level profile during sync; rs.GetProfile
+	// falls back to the deprecated trait profile for resources synced before the move,
+	// and an API lookup covers anything still missing it.
+	memberId, found := rs.GetProfileStringValue(rs.GetProfile(principal), memberIdProfileKey)
 	if !found || memberId == "" {
 		var err error
 		memberId, err = findMemberIDByUserID(ctx, r.client, r.accountId, userId)
@@ -378,9 +379,10 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 	userId := principal.Id.Resource
 	roleId := entitlement.Resource.Id.Resource
 
-	// The member ID is written to the resource-level profile during sync; fall back to
-	// an API lookup for resources synced before the profile moved off the user trait.
-	memberId, found := rs.GetProfileStringValue(principal.GetProfile(), memberIdProfileKey)
+	// The member ID is written to the resource-level profile during sync; rs.GetProfile
+	// falls back to the deprecated trait profile for resources synced before the move,
+	// and an API lookup covers anything still missing it.
+	memberId, found := rs.GetProfileStringValue(rs.GetProfile(principal), memberIdProfileKey)
 	if !found || memberId == "" {
 		var err error
 		memberId, err = findMemberIDByUserID(ctx, r.client, r.accountId, userId)

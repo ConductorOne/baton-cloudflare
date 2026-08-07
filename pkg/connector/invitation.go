@@ -18,7 +18,10 @@ import (
 	"golang.org/x/text/language"
 )
 
-const userStatusPending = "pending"
+const (
+	userStatusPending  = "pending"
+	userStatusAccepted = "accepted"
+)
 
 type InvitationResourceType struct {
 	resourceType *v2.ResourceType
@@ -40,15 +43,20 @@ func invitationResource(member cloudflare.AccountMember) (*v2.Resource, error) {
 	}
 
 	userTraits := []rs.UserTraitOption{
-		rs.WithUserProfile(profile),
-		rs.WithDetailedStatus(v2.UserTrait_Status_STATUS_ENABLED, status),
 		rs.WithUserLogin(email),
 		rs.WithEmail(email, true),
 	}
 
 	// member.ID (the membership UUID) is used as the resource ID because member.User.ID
 	// is empty for pending invitations until the user accepts and gets a Cloudflare UUID.
-	resource, err := rs.NewUserResource(email, resourceTypeInvitation, member.ID, userTraits)
+	resource, err := rs.NewUserResource(
+		email,
+		resourceTypeInvitation,
+		member.ID,
+		userTraits,
+		rs.WithResourceProfile(profile),
+		rs.WithResourceStatus(v2.Status_RESOURCE_STATUS_ENABLED, status),
+	)
 	if err != nil {
 		return nil, err
 	}

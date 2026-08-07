@@ -4,11 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/cloudflare/cloudflare-go"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const memberIdProfileKey = "member_id"
@@ -27,17 +31,17 @@ func userResource(member cloudflare.AccountMember) (*v2.Resource, error) {
 	user := member.User
 	firstName := user.FirstName
 	lastName := user.LastName
+	status := cases.Title(language.English).String(member.Status)
 	profile := map[string]interface{}{
 		"login":            user.Email,
 		"first_name":       firstName,
 		"last_name":        lastName,
 		"email":            user.Email,
+		"status":           status,
 		memberIdProfileKey: member.ID,
 	}
 
 	userTraits := []rs.UserTraitOption{
-		rs.WithUserProfile(profile),
-		rs.WithStatus(v2.UserTrait_Status_STATUS_UNSPECIFIED),
 		rs.WithUserLogin(user.Email),
 		rs.WithEmail(user.Email, true),
 	}
@@ -47,12 +51,31 @@ func userResource(member cloudflare.AccountMember) (*v2.Resource, error) {
 		displayName = user.Email
 	}
 
-	resource, err := rs.NewUserResource(displayName, resourceTypeUser, user.ID, userTraits)
+	resource, err := rs.NewUserResource(
+		displayName,
+		resourceTypeUser,
+		user.ID,
+		userTraits,
+		rs.WithResourceProfile(profile),
+		rs.WithResourceStatus(memberResourceStatus(member.Status), status),
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	return resource, nil
+}
+
+// memberResourceStatus maps a Cloudflare account member status onto a resource status.
+// The API documents "accepted" and "pending"; List filters pending members out (they
+// sync as invitations), so members reaching here should be accepted. Unrecognized
+// values are reported as disabled rather than silently enabled.
+func memberResourceStatus(memberStatus string) v2.Status_ResourceStatus {
+	if strings.EqualFold(memberStatus, userStatusAccepted) {
+		return v2.Status_RESOURCE_STATUS_ENABLED
+	}
+
+	return v2.Status_RESOURCE_STATUS_DISABLED
 }
 
 func (o *UserResourceType) List(ctx context.Context, _ *v2.ResourceId, opts rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {

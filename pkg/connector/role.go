@@ -51,16 +51,13 @@ func roleResource(role cloudflare.AccountRole, resourceTypeRole *v2.ResourceType
 		"role_name": role.Name,
 	}
 
-	roleTraitOptions := []rs.RoleTraitOption{
-		rs.WithRoleProfile(profile),
-	}
-
 	ret, err := rs.NewRoleResource(
 		role.Name,
 		resourceTypeRole,
 		role.ID,
-		roleTraitOptions,
+		nil,
 		rs.WithParentResourceID(parentResourceID),
+		rs.WithResourceProfile(profile),
 	)
 	if err != nil {
 		return nil, err
@@ -234,13 +231,12 @@ func (r *roleResourceType) Grant(ctx context.Context, principal *v2.Resource, en
 		return nil, fmt.Errorf("baton-cloudflare: only users can be granted role membership")
 	}
 
-	userTrait, err := rs.GetUserTrait(principal)
-	if err != nil {
-		return nil, fmt.Errorf("baton-cloudflare: user trait not found on principal")
-	}
-
-	memberId, found := rs.GetProfileStringValue(userTrait.GetProfile(), memberIdProfileKey)
+	// The member ID is written to the resource-level profile during sync; rs.GetProfile
+	// falls back to the deprecated trait profile for resources synced before the move,
+	// and an API lookup covers anything still missing it.
+	memberId, found := rs.GetProfileStringValue(rs.GetProfile(principal), memberIdProfileKey)
 	if !found || memberId == "" {
+		var err error
 		memberId, err = findMemberIDByUserID(ctx, r.client, r.accountId, userId)
 		if err != nil {
 			return nil, err
@@ -383,13 +379,12 @@ func (r *roleResourceType) Revoke(ctx context.Context, grant *v2.Grant) (annotat
 	userId := principal.Id.Resource
 	roleId := entitlement.Resource.Id.Resource
 
-	userTrait, err := rs.GetUserTrait(principal)
-	if err != nil {
-		return nil, fmt.Errorf("baton-cloudflare: user trait not found on principal")
-	}
-
-	memberId, found := rs.GetProfileStringValue(userTrait.GetProfile(), memberIdProfileKey)
+	// The member ID is written to the resource-level profile during sync; rs.GetProfile
+	// falls back to the deprecated trait profile for resources synced before the move,
+	// and an API lookup covers anything still missing it.
+	memberId, found := rs.GetProfileStringValue(rs.GetProfile(principal), memberIdProfileKey)
 	if !found || memberId == "" {
+		var err error
 		memberId, err = findMemberIDByUserID(ctx, r.client, r.accountId, userId)
 		if err != nil {
 			return nil, err

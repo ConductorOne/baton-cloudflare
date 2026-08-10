@@ -36,8 +36,10 @@ func TestAPITokenResource(t *testing.T) {
 
 	assert.Equal(t, v2.SecretTrait_CREDENTIAL_TYPE_STATIC_SECRET, secretTrait.GetCredentialType())
 	assert.Equal(t, apiTokenSecretDetail, secretTrait.GetCredentialDetail())
-	assert.Equal(t, issued, secretTrait.GetCreatedAt().AsTime())
 	assert.Equal(t, expires, secretTrait.GetExpiresAt().AsTime())
+
+	// created_at lives on the resource, not the secret trait.
+	assert.Equal(t, issued, resource.GetCreatedAt().AsTime())
 }
 
 func TestAPITokenResourceFallbackDisplayName(t *testing.T) {

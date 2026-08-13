@@ -37,12 +37,18 @@ var (
 		field.WithHidden(true),
 		field.WithExportTarget(field.ExportTargetCLIOnly),
 	)
+	organizationIdField = field.StringField(
+		"organization-id",
+		field.WithDisplayName("Organization ID"),
+		field.WithDescription("The Cloudflare organization ID. When set, the connector syncs organization membership so you can see which users belong to this organization."),
+	)
 	configurationFields = []field.SchemaField{
 		apiKeyField,
 		apiTokenField,
 		accountIdField,
 		emailIdField,
 		baseUrlField,
+		organizationIdField,
 	}
 )
 
@@ -57,14 +63,14 @@ var Config = field.NewConfiguration(
 			Name:        "api-token-group",
 			DisplayName: "API Token",
 			HelpText:    "Use an API token for authentication.",
-			Fields:      []field.SchemaField{accountIdField, apiTokenField},
+			Fields:      []field.SchemaField{accountIdField, apiTokenField, organizationIdField},
 			Default:     true,
 		},
 		{
 			Name:        "api-key-group",
 			DisplayName: "Email + API key",
 			HelpText:    "Use an API key with email for authentication.",
-			Fields:      []field.SchemaField{accountIdField, emailIdField, apiKeyField},
+			Fields:      []field.SchemaField{accountIdField, emailIdField, apiKeyField, organizationIdField},
 		},
 	}),
 )

@@ -35,7 +35,7 @@ jobs:
       - name: Run baton-cloudflare
         run: ./baton-cloudflare
       - name: Install baton
-        run: ./scripts/get-baton.sh && mv baton /usr/local/bin
+        uses: ConductorOne/github-workflows/actions/get-baton@v4
       - name: Get baton resources
         run: baton resources
       - name: Grant entitlement
